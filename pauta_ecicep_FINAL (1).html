@@ -1012,43 +1012,107 @@ const multi5State={}; // {itemId: {idx: 'si'|'no'|'na'|null}}
 // drag state
 let dragSrcItemId=null,dragSrcIdx=null;
 
-// ===================== GOOGLE SHEETS INTEGRATION =====================
-const GSHEETS_CLIENT_ID = '1090869348511-v052om5l3l6rmu2pbitnu96asj2cpl1g.apps.googleusercontent.com';
-const GSHEETS_SPREADSHEET_ID = '1Lxwgnh-J2oQ7Us3wAFDIpSwSFbBt3LxLIyVGwnnnsSc';
-const GSHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
-let gsheetsToken = null;
+// ===================== APPS SCRIPT INTEGRATION =====================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyhWFdDYdDvUPSyfUd2ry9qFz1aFEMLhfqEcbPS8qlPWaC5L1LnKzc9FBACq6niRIsC/exec';
 
-function guardarEnSheets(){
-  if(gsheetsToken){
-    enviarASheets(gsheetsToken);
-    return;
-  }
-  // Verificar que la librería de Google esté disponible
-  if(typeof google === 'undefined' || !google.accounts){
-    showToast('Cargando autenticación Google, intenta en unos segundos...', 'warn');
-    // Intentar cargar el script dinámicamente
-    if(!document.getElementById('gsi-script')){
-      const s = document.createElement('script');
-      s.id = 'gsi-script';
-      s.src = 'https://accounts.google.com/gsi/client';
-      s.onload = () => { showToast('Listo, haz clic nuevamente en el botón', 'success'); };
-      document.head.appendChild(s);
+async function guardarEnSheets(){
+  showToast('Guardando en Google Sheets...', '');
+  
+  const sc = calcScores();
+  const global = pct(sc.totalObt, sc.totalDen);
+  const oblig = pct(sc.obligObt, sc.obligDen);
+  const cumple = global >= 80 && oblig >= 80 ? 'Sí' : 'No';
+  const getVal = id => { const el=document.getElementById(id); return el?el.value:''; };
+
+  // Profesional ingreso
+  const profIngresoVal = getVal('profIngreso');
+  let profIngresoStr = profIngresoVal;
+  if(profIngresoVal==='familia') profIngresoStr='Médico/a de Familia';
+  else if(profIngresoVal==='dupla'){
+    const p1=getVal('duplaIngreso1')==='Otro'?getVal('duplaIngreso1Otro'):getVal('duplaIngreso1');
+    const p2=getVal('duplaIngreso2')==='Otro'?getVal('duplaIngreso2Otro'):getVal('duplaIngreso2');
+    profIngresoStr='Dupla: '+p1+' / '+p2;
+  } else if(profIngresoVal==='otro') profIngresoStr='Otro: '+getVal('profIngresoOtroText');
+
+  // Profesional seguimiento
+  const profSegVal = getVal('profSeguimiento');
+  let profSegStr = profSegVal;
+  if(profSegVal==='gestor') profSegStr='Gestor/a de caso ECICEP ('+getVal('profSegSub')+')';
+  else if(profSegVal==='jefatura') profSegStr='Jefatura de sector ('+getVal('profSegSub')+')';
+  else if(profSegVal==='tens') profSegStr='TENS';
+  else if(profSegVal==='otro') profSegStr='Otro: '+getVal('profSeguimientoOtro');
+
+  // Profesional control
+  const profCtrlVal = getVal('profControl');
+  let profCtrlStr = profCtrlVal;
+  if(profCtrlVal==='uno') profCtrlStr='Solo: '+getVal('profControlUno');
+  else if(profCtrlVal==='dupla') profCtrlStr='Dupla: '+getVal('duplaControl1')+' / '+getVal('duplaControl2');
+  else if(profCtrlVal==='otro') profCtrlStr='Otro: '+getVal('profControlOtroText');
+
+  // Respuestas por ítem
+  function getRespItem(item){
+    if(item.tipo==='radio') return respuestas[item.id]!==undefined?respuestas[item.id]:'';
+    if(item.tipo==='dim4_simple'){
+      const st=dim4sState[item.id]||{};
+      return item.opciones.map((op,idx)=>op+': '+(st[idx]||'-')).join(' | ');
     }
-    return;
-  }
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: GSHEETS_CLIENT_ID,
-    scope: GSHEETS_SCOPE,
-    callback: (response) => {
-      if(response.error){
-        showToast('Error de autenticación: ' + response.error, 'warn');
-        return;
-      }
-      gsheetsToken = response.access_token;
-      enviarASheets(gsheetsToken);
+    if(item.tipo==='dim4'){
+      const st=dim4State[item.id]||{};
+      return item.opciones.map((op,idx)=>op+': '+(st[idx]||'-')).join(' | ');
     }
+    if(item.tipo==='multi5'){
+      const st=multi5State[item.id]||{};
+      return item.opciones.map((op,idx)=>op.label+': '+(st[idx]||'-')).join(' | ');
+    }
+    return '';
+  }
+
+  const itemsOrdenados=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,30,31,29];
+  const respItems={};
+  itemsOrdenados.forEach((id,i)=>{
+    const item=ITEMS.find(it=>it.id===id);
+    respItems['item'+(i+1)]=item?getRespItem(item):'';
   });
-  client.requestAccessToken();
+
+  const data = {
+    fechaAplicacion: getVal('fechaAplicacion'),
+    tipoEval: getVal('tipoEval'),
+    nombreAplicador: getVal('nombreAplicador'),
+    provincia: getVal('provincia'),
+    comuna: getVal('comuna'),
+    centroSalud: getVal('centroSalud'),
+    rutFicha: getVal('rutFicha'),
+    clasificacion: getVal('clasificacion'),
+    fechaIngreso: getVal('fechaIngreso'),
+    profIngreso: profIngresoStr,
+    profSeguimiento: profSegStr,
+    modalidadSeg: getVal('modalidadSeg'),
+    profControl: profCtrlStr,
+    pctOblig: oblig+'%',
+    pctGlobal: global+'%',
+    cumple: cumple,
+    pctIngreso: pct(sc.sec.ingreso.obt, sc.sec.ingreso.den)+'%',
+    pctPlan: pct(sc.sec.plan.obt, sc.sec.plan.den)+'%',
+    pctSeguimiento: pct(sc.sec.seguimiento.obt, sc.sec.seguimiento.den)+'%',
+    pctControl: pct(sc.sec.control.obt, sc.sec.control.den)+'%',
+    obligObt: sc.obligObt.toFixed(2),
+    obligDen: sc.obligDen.toFixed(2),
+    totalObt: sc.totalObt.toFixed(2),
+    totalDen: sc.totalDen.toFixed(2),
+    ...respItems
+  };
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    showToast('✓ Guardado en Google Sheets correctamente', 'success');
+  } catch(err) {
+    showToast('Error de conexión: ' + err.message, 'warn');
+  }
 }
 
 async function enviarASheets(token){
