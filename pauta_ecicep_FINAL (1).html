@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pauta de Auditoría ECICEP — Servicio de Salud Coquimbo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:#1a3a5c;--azul-med:#2563a8;--azul-light:#dbeafe;--azul-pale:#f0f6ff;
+    --teal:#0d6e56;--teal-light:#d1fae5;--coral:#993c1d;--coral-light:#fef3c7;
+    --rojo:#a32d2d;--rojo-light:#fee2e2;--verde:#3b6d11;--verde-light:#dcfce7;
+    --gris:#4b5563;--gris-light:#f3f4f6;--border:#e2e8f0;--text:#1e293b;
+    --muted:#64748b;--white:#ffffff;--radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:#f0f4f8;color:var(--text);min-height:100vh;}
+
+  .header{background:var(--azul);color:white;padding:2rem 2.5rem 1.5rem;position:relative;overflow:hidden;}
+  .header::after{content:'';position:absolute;bottom:-30px;right:-30px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.05);}
+  .header-badge{display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:3px 14px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;font-weight:500;}
+  .header h1{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;line-height:1.2;margin-bottom:6px;}
+  .header p{font-size:14px;opacity:.75;font-weight:300;}
+
+  .progress-bar-wrap{background:var(--white);border-bottom:1px solid var(--border);padding:1rem 2.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+  .progress-label{font-size:13px;color:var(--muted);white-space:nowrap;font-weight:500;min-width:120px;}
+  .progress-track{flex:1;height:8px;background:var(--gris-light);border-radius:99px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--azul-med),var(--teal));border-radius:99px;transition:width .4s ease;width:0%;}
+  .progress-pct{font-size:13px;font-weight:600;color:var(--azul);min-width:36px;text-align:right;}
+
+  .container{max-width:900px;margin:0 auto;padding:2rem 1.5rem 4rem;}
+
+  .section{background:white;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:1.5rem;overflow:hidden;}
+  .section-header{background:var(--azul-pale);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:10px;}
+  .section-number{background:var(--azul);color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+  .section-title{font-size:15px;font-weight:600;color:var(--azul);letter-spacing:.01em;}
+
+  /* sub-sección Plan de Cuidados */
+  .subsection-header{background:#eff6ff;border-top:2px solid var(--azul-med);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:8px;}
+  .subsection-title{font-size:13px;font-weight:600;color:var(--azul-med);text-transform:uppercase;letter-spacing:.07em;}
+
+  .section-body{padding:20px;}
+  .form-group{margin-bottom:18px;}
+  .form-group:last-child{margin-bottom:0;}
+  label.field-label{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;}
+  input[type="text"],input[type="date"],select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:white;transition:border-color .2s;outline:none;appearance:none;}
+  input[type="text"]:focus,input[type="date"]:focus,select:focus{border-color:var(--azul-med);box-shadow:0 0 0 3px rgba(37,99,168,.12);}
+  input.field-error{border-color:var(--rojo)!important;box-shadow:0 0 0 3px rgba(163,45,45,.12)!important;}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+  .field-hint.error{color:var(--rojo);font-weight:500;}
+
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+  /* Profesional dupla */
+  .dupla-wrap{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+  .dupla-wrap.visible{display:grid;}
+  .dupla-label{font-size:11px;font-weight:600;color:var(--azul);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+  .prof-sub-wrap{display:none;margin-top:8px;}
+  .prof-sub-wrap.visible{display:block;}
+
+  .score-strip{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+  .score-strip-sub{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
+  .score-card{background:white;border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;}
+  @media(max-width:700px){.score-strip{grid-template-columns:1fr 1fr;}.score-strip-sub{grid-template-columns:1fr 1fr;}}
+  .score-card .sc-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;font-weight:500;}
+  .score-card .sc-val{font-size:28px;font-weight:600;color:var(--azul);line-height:1;}
+  .score-card .sc-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .score-card.ok .sc-val{color:var(--verde);}
+  .score-card.warn .sc-val{color:#b45309;}
+  .score-card.bad .sc-val{color:var(--rojo);}
+
+  .audit-item{padding:16px 20px;border-bottom:1px solid var(--gris-light);transition:background .15s;}
+  .audit-item:last-child{border-bottom:none;}
+  .audit-item:hover{background:#fafbfc;}
+  .item-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .item-num{background:var(--gris-light);color:var(--gris);font-size:11px;font-weight:600;border-radius:5px;padding:2px 7px;flex-shrink:0;margin-top:2px;}
+  .item-num.obligatorio{background:var(--azul-light);color:var(--azul);}
+  .item-text{font-size:14px;line-height:1.5;color:var(--text);flex:1;}
+  .badge-oblig{flex-shrink:0;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:20px;margin-top:2px;}
+  .badge-oblig.ob{background:var(--azul-light);color:var(--azul);}
+  .badge-oblig.no{background:var(--gris-light);color:var(--gris);}
+
+  .options-row{display:flex;gap:10px;flex-wrap:wrap;padding-left:36px;}
+  .opt-btn{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 14px;border-radius:7px;border:1px solid var(--border);font-size:13px;font-weight:500;color:var(--gris);background:white;transition:all .15s;user-select:none;}
+  .opt-btn:hover{border-color:var(--azul-med);color:var(--azul-med);}
+  .opt-btn input{display:none;}
+  .opt-btn.selected-si{background:var(--verde-light);border-color:var(--verde);color:var(--verde);}
+  .opt-btn.selected-no{background:var(--rojo-light);border-color:var(--rojo);color:var(--rojo);}
+  .opt-btn.selected-na{background:var(--coral-light);border-color:#b45309;color:#92400e;}
+
+  .check-grid{display:flex;flex-wrap:wrap;gap:8px;padding-left:36px;}
+
+  /* ── dim4_simple table (Sí/No solo) ── */
+  .dim4s-table{width:100%;border-collapse:collapse;margin-left:36px;margin-top:4px;max-width:520px;}
+  .dim4s-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px;background:var(--gris-light);font-weight:500;}
+  .dim4s-table th.col-op{text-align:center;width:100px;}
+  .dim4s-table td{padding:7px 10px;border-bottom:1px solid var(--gris-light);font-size:13px;vertical-align:middle;}
+  .dim4s-table tr:last-child td{border-bottom:none;}
+  .dim4s-table td.col-op{text-align:center;}
+
+  /* ── dim4 table ── */
+  .dim4-table{width:100%;border-collapse:collapse;margin-left:36px;margin-top:4px;max-width:600px;}
+  .dim4-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px;background:var(--gris-light);font-weight:500;}
+  .dim4-table th.col-op{text-align:center;width:90px;}
+  .dim4-table td{padding:7px 10px;border-bottom:1px solid var(--gris-light);font-size:13px;vertical-align:middle;}
+  .dim4-table tr:last-child td{border-bottom:none;}
+  .dim4-table td.col-op{text-align:center;}
+  .dim4-opt{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--gris);background:white;transition:all .15s;user-select:none;white-space:nowrap;}
+  .dim4-opt:hover{border-color:var(--azul-med);}
+  .dim4-opt.d-si{background:var(--verde-light);border-color:var(--verde);color:var(--verde);}
+  .dim4-opt.d-no{background:var(--rojo-light);border-color:var(--rojo);color:var(--rojo);}
+  .dim4-opt.d-na{background:var(--coral-light);border-color:#b45309;color:#92400e;}
+  .dim4-drag-row{cursor:grab;}
+  .dim4-drag-row:active{cursor:grabbing;opacity:.7;}
+  .dim4-drag-row.drag-over{background:var(--azul-pale);}
+  .drag-handle{color:var(--muted);font-size:14px;cursor:grab;padding-right:6px;user-select:none;}
+
+  /* ── multi5 ── */
+  .multi5-table{width:100%;border-collapse:collapse;margin-left:36px;margin-top:4px;max-width:620px;}
+  .multi5-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px;background:var(--gris-light);font-weight:500;}
+  .multi5-table th.col-op{text-align:center;width:80px;}
+  .multi5-table td{padding:7px 10px;border-bottom:1px solid var(--gris-light);font-size:13px;vertical-align:middle;}
+  .multi5-table tr:last-child td{border-bottom:none;}
+  .multi5-table td.col-op{text-align:center;}
+  .m5-opt{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:4px 10px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:500;color:var(--gris);background:white;transition:all .15s;user-select:none;}
+  .m5-opt:hover{border-color:var(--azul-med);}
+  .m5-opt.m-si{background:var(--verde-light);border-color:var(--verde);color:var(--verde);}
+  .m5-opt.m-no{background:var(--rojo-light);border-color:var(--rojo);color:var(--rojo);}
+  .m5-opt.m-na{background:var(--coral-light);border-color:#b45309;color:#92400e;}
+  .chk-btn{display:flex;align-items:center;gap:6px;cursor:pointer;padding:6px 12px;border-radius:7px;border:1px solid var(--border);font-size:13px;color:var(--gris);background:white;transition:all .15s;user-select:none;}
+  .chk-btn:hover{border-color:var(--azul-med);}
+  .chk-btn.checked{background:var(--azul-light);border-color:var(--azul-med);color:var(--azul);font-weight:500;}
+  .chk-btn .dot{width:12px;height:12px;border-radius:3px;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+  .chk-btn.checked .dot::after{content:'✓';}
+  .chk-btn.na-marked{background:var(--coral-light);border-color:#b45309;color:#92400e;}
+  .pts-note{font-size:11px;color:var(--muted);padding-left:36px;margin-top:6px;font-style:italic;}
+  .multi-na-row{padding-left:36px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .multi-na-btn{cursor:pointer;padding:4px 10px;border-radius:7px;border:1px dashed #b45309;font-size:12px;color:#92400e;background:white;transition:all .15s;user-select:none;}
+  .multi-na-btn.na-active{background:var(--coral-light);font-weight:500;}
+  .multi-na-label{font-size:11px;color:var(--muted);}
+
+  .btn-generar{display:block;width:100%;padding:16px;background:var(--azul);color:white;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;letter-spacing:.02em;transition:background .2s,transform .1s;margin-top:2rem;}
+  .btn-generar:hover{background:#1e4a7a;}
+  .btn-generar:active{transform:scale(.99);}
+
+  #informe{display:none;background:white;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:2rem;}
+  .informe-header{background:var(--azul);color:white;padding:24px 28px;}
+  .informe-header h2{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400;margin-bottom:4px;}
+  .informe-header p{font-size:13px;opacity:.7;}
+  .informe-body{padding:24px 28px;}
+
+  .inf-meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+  .inf-meta-item{background:var(--gris-light);border-radius:7px;padding:10px 14px;}
+  .inf-meta-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500;margin-bottom:2px;}
+  .inf-meta-item .v{font-size:14px;font-weight:600;color:var(--text);}
+
+  .cumplimiento-banner{border-radius:var(--radius);padding:18px 22px;margin-bottom:24px;display:flex;align-items:center;gap:16px;}
+  .cumplimiento-banner.cumple{background:var(--verde-light);border:1px solid #86efac;}
+  .cumplimiento-banner.no-cumple{background:var(--rojo-light);border:1px solid #fca5a5;}
+  .cb-icon{font-size:32px;}
+  .cb-text h3{font-size:17px;font-weight:600;margin-bottom:2px;}
+  .cb-text p{font-size:13px;opacity:.8;}
+
+  .puntaje-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:28px;}
+  .puntaje-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+  .puntaje-card .pc-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;font-weight:500;}
+  .puntaje-card .pc-pct{font-size:32px;font-weight:700;line-height:1;margin-bottom:4px;}
+  .puntaje-card .pc-pts{font-size:13px;color:var(--muted);}
+  .puntaje-card.ok .pc-pct{color:var(--verde);}
+  .puntaje-card.warn .pc-pct{color:#b45309;}
+  .puntaje-card.bad .pc-pct{color:var(--rojo);}
+  .puntaje-card .threshold{margin-top:8px;font-size:11px;padding:3px 8px;border-radius:20px;display:inline-block;font-weight:500;}
+  .threshold.pass{background:var(--verde-light);color:var(--verde);}
+  .threshold.fail{background:var(--rojo-light);color:var(--rojo);}
+
+  .detalle-section{margin-bottom:24px;}
+  .detalle-section h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .detalle-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .detalle-table th{text-align:left;padding:8px 10px;background:var(--gris-light);color:var(--muted);font-weight:500;font-size:12px;}
+  .detalle-table td{padding:9px 10px;border-bottom:1px solid var(--gris-light);vertical-align:top;}
+  .detalle-table tr:last-child td{border-bottom:none;}
+  .pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .pill-si{background:var(--verde-light);color:var(--verde);}
+  .pill-no{background:var(--rojo-light);color:var(--rojo);}
+  .pill-na{background:var(--coral-light);color:#92400e;}
+  .pill-p{background:var(--teal-light);color:var(--teal);}
+  .pill-oblig{background:var(--azul-light);color:var(--azul);}
+  .pill-opc{background:var(--gris-light);color:var(--gris);}
+
+  .fd-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+  .fd-box{border-radius:var(--radius);padding:16px;border:1px solid;}
+  .fd-box.fort{border-color:#86efac;background:var(--verde-light);}
+  .fd-box.deb{border-color:#fca5a5;background:var(--rojo-light);}
+  .fd-box h4{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .fd-box.fort h4{color:var(--verde);}
+  .fd-box.deb h4{color:var(--rojo);}
+  .fd-box ul{list-style:none;}
+  .fd-box ul li{font-size:13px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.07);color:var(--text);display:flex;gap:6px;align-items:flex-start;}
+  .fd-box ul li:last-child{border-bottom:none;}
+  .fd-box ul li::before{flex-shrink:0;margin-top:1px;}
+  .fd-box.fort ul li::before{content:'✓';color:var(--verde);font-weight:700;}
+  .fd-box.deb ul li::before{content:'✕';color:var(--rojo);font-weight:700;}
+
+  .analisis-box{background:var(--azul-pale);border:1px solid #bfdbfe;border-radius:var(--radius);padding:18px 22px;margin-bottom:24px;}
+  .analisis-box h4{color:var(--azul);font-size:14px;font-weight:600;margin-bottom:10px;}
+  .analisis-box p{font-size:13.5px;line-height:1.7;color:var(--text);margin-bottom:8px;}
+  .analisis-box p:last-child{margin-bottom:0;}
+
+  .dim-bar-wrap{margin-bottom:8px;}
+  .dim-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .dim-label{font-size:13px;color:var(--gris);min-width:150px;font-weight:500;}
+  .dim-track{flex:1;height:10px;background:var(--gris-light);border-radius:99px;overflow:hidden;}
+  .dim-fill{height:100%;border-radius:99px;background:var(--azul-med);transition:width .5s;}
+  .dim-fill.ok{background:var(--verde);}
+  .dim-fill.warn{background:#f59e0b;}
+  .dim-fill.bad{background:var(--rojo);}
+  .dim-pct{font-size:13px;font-weight:600;color:var(--gris);min-width:38px;text-align:right;}
+
+  @media(max-width:640px){
+    .row-2,.row-3{grid-template-columns:1fr;}
+    .puntaje-grid{grid-template-columns:1fr;}
+    .fd-grid{grid-template-columns:1fr;}
+    .inf-meta-grid{grid-template-columns:1fr 1fr;}
+    .dupla-wrap{grid-template-columns:1fr;}
+  }
+
+  /* ── Observaciones por ítem ── */
+  .obs-toggle{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;text-decoration:underline;padding-left:36px;margin-top:6px;display:block;font-family:inherit;}
+  .obs-toggle:hover{color:var(--azul);}
+  .obs-field-wrap{padding-left:36px;margin-top:6px;display:none;}
+  .obs-field-wrap.open{display:block;}
+  .obs-field{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);resize:vertical;min-height:52px;outline:none;background:#fafcff;}
+  .obs-field:focus{border-color:var(--azul-med);}
+  .obs-na-reason{width:100%;padding:7px 10px;border:1px solid #b45309;border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;color:#92400e;background:#fffbf5;outline:none;margin-top:4px;}
+  .obs-na-reason:focus{box-shadow:0 0 0 3px rgba(180,83,9,.12);}
+
+  /* ── Botones acción ── */
+  .action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:2rem;}
+  .btn-action{flex:1;min-width:140px;padding:13px 18px;border:none;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-primary{background:var(--azul);color:white;}
+  .btn-primary:hover{background:#1e4a7a;}
+  .btn-secondary{background:white;color:var(--azul);border:2px solid var(--azul);}
+  .btn-secondary:hover{background:var(--azul-pale);}
+  .btn-success{background:var(--teal);color:white;}
+  .btn-success:hover{background:#0a5a45;}
+  .btn-warn{background:#b45309;color:white;}
+  .btn-warn:hover{background:#92400e;}
+
+  /* ── Modal validación ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;}
+  .modal-box{background:white;border-radius:14px;padding:32px 28px;max-width:500px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);border-top:5px solid var(--rojo);}
+  .modal-box.ok{border-top-color:var(--verde);}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+  .modal-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+  .modal-list{list-style:none;margin-bottom:18px;}
+  .modal-list li{font-size:13px;padding:6px 0;border-bottom:1px solid var(--gris-light);display:flex;gap:8px;align-items:flex-start;}
+  .modal-list li:last-child{border-bottom:none;}
+  .modal-list li::before{content:'⚠';flex-shrink:0;}
+  .modal-btns{display:flex;gap:10px;}
+  .modal-btns button{flex:1;padding:11px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;border:none;}
+
+  /* ── Toast notificación ── */
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--azul);color:white;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:300;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.success{background:var(--teal);}
+  .toast.warn{background:#b45309;}
+
+  /* ── Radar chart ── */
+  .radar-wrap{display:flex;justify-content:center;margin-bottom:20px;}
+  canvas#radarChart{max-width:340px;max-height:340px;}
+
+  /* ── Firma ── */
+  .firma-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+  .firma-box{text-align:center;}
+  .firma-line{border-bottom:1.5px solid var(--text);margin-bottom:6px;height:40px;}
+  .firma-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;}
+  .firma-name{font-size:13px;font-weight:600;margin-top:2px;}
+
+  /* ── Recomendaciones automáticas ── */
+  .rec-list{list-style:none;margin-top:8px;}
+  .rec-list li{font-size:13px;line-height:1.6;padding:8px 10px;border-radius:7px;background:var(--azul-pale);border-left:3px solid var(--azul-med);margin-bottom:6px;color:var(--text);}
+  .rec-list li.critica{background:var(--rojo-light);border-left-color:var(--rojo);}
+
+  /* ── Print ── */
+  @media print{
+    .progress-bar-wrap,.action-bar,.score-strip,.section:not(#printable),.modal-overlay,.toast{display:none!important;}
+    #informe{display:block!important;border:none!important;box-shadow:none!important;}
+    .informe-body{padding:0!important;}
+    body{background:white!important;}
+    @page{margin:1.5cm 2cm;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-badge">Auditoría de Calidad</div>
+  <h1>Ficha Clínica ECICEP</h1>
+  <p>Subdepartamento de Modelo y Territorio, Subdirección de Atención Primaria · Servicio de Salud Coquimbo</p>
+</div>
+
+<div class="progress-bar-wrap">
+  <span class="progress-label">Progreso del formulario</span>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <span class="progress-pct" id="progressPct">0%</span>
+</div>
+
+<div class="container">
+
+  <!-- PUNTAJE EN VIVO -->
+  <div class="score-strip">
+    <div class="score-card" id="scOblig">
+      <div class="sc-label">Ítems obligatorios</div>
+      <div class="sc-val" id="scObligVal">—</div>
+      <div class="sc-sub">Meta ≥ 80%</div>
+    </div>
+    <div class="score-card" id="scGlobal">
+      <div class="sc-label">Puntaje global</div>
+      <div class="sc-val" id="scGlobalVal">—</div>
+      <div class="sc-sub">Meta ≥ 80%</div>
+    </div>
+  </div>
+  <div class="score-strip-sub">
+    <div class="score-card" id="scIngreso">
+      <div class="sc-label">II. Ingreso integral</div>
+      <div class="sc-val" id="scIngresoVal">—</div>
+      <div class="sc-sub" id="scIngresoSub">0/0 pts</div>
+    </div>
+    <div class="score-card" id="scPlan">
+      <div class="sc-label">III. Plan de cuidados</div>
+      <div class="sc-val" id="scPlanVal">—</div>
+      <div class="sc-sub" id="scPlanSub">0/0 pts</div>
+    </div>
+    <div class="score-card" id="scSeguimiento">
+      <div class="sc-label">IV. Seguimiento</div>
+      <div class="sc-val" id="scSeguimientoVal">—</div>
+      <div class="sc-sub" id="scSeguimientoSub">0/0 pts</div>
+    </div>
+    <div class="score-card" id="scControl">
+      <div class="sc-label">V. Control integral</div>
+      <div class="sc-val" id="scControlVal">—</div>
+      <div class="sc-sub" id="scControlSub">0/0 pts</div>
+    </div>
+  </div>
+
+  <!-- I. ANTECEDENTES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">I</div>
+      <div class="section-title">Antecedentes Generales</div>
+    </div>
+    <div class="section-body">
+      <div class="row-2" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="field-label">Fecha de aplicación</label>
+          <input type="date" id="fechaAplicacion">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Tipo de evaluación</label>
+          <select id="tipoEval">
+            <option value="">Seleccionar...</option>
+            <option>Auditoría Servicio de Salud</option>
+            <option>Auditoría Local</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="field-label">Nombre de quien aplica la pauta</label>
+        <input type="text" id="nombreAplicador" placeholder="Nombre completo">
+      </div>
+      <div class="row-3" style="margin-bottom:14px">
+        <div class="form-group">
+          <label class="field-label">Provincia</label>
+          <select id="provincia" onchange="actualizarComunas()">
+            <option value="">— Provincia —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Comuna</label>
+          <select id="comuna" onchange="actualizarCentros()" disabled>
+            <option value="">— Comuna —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Centro de salud</label>
+          <select id="centroSalud" disabled>
+            <option value="">— Establecimiento —</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-3">
+        <div class="form-group">
+          <label class="field-label">RUT ficha auditada</label>
+          <input type="text" id="rutFicha" placeholder="12345678-9" maxlength="10" oninput="formatRut(this)">
+        </div>
+        <div class="form-group">
+          <label class="field-label">Clasificación de riesgo</label>
+          <select id="clasificacion">
+            <option value="">Seleccionar...</option>
+            <option>G1</option>
+            <option>G2</option>
+            <option>G3</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Fecha ingreso ECICEP</label>
+          <input type="date" id="fechaIngreso" onchange="validarFechaIngreso()">
+          <div class="field-hint" id="fechaIngresoHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- II. INGRESO INTEGRAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">II</div>
+      <div class="section-title">Ingreso Integral</div>
+    </div>
+
+    <div class="audit-item">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:500;">Profesional(es) que realizan ingreso integral</div>
+      <select id="profIngreso" onchange="toggleDuplaIngreso()" style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:14px;">
+        <option value="">Seleccionar...</option>
+        <option value="familia">Médico/a de Familia</option>
+        <option value="dupla">Dupla</option>
+        <option value="otro">Otro</option>
+      </select>
+      <div class="prof-sub-wrap" id="profIngresoOtroWrap">
+        <div class="dupla-label" style="margin-top:8px;">Especificar</div>
+        <input type="text" id="profIngresoOtroText" placeholder="Indicar profesional..." style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+      </div>
+      <div class="dupla-wrap" id="duplaIngresoWrap">
+        <div>
+          <div class="dupla-label">Profesional 1</div>
+          <select id="duplaIngreso1" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;" onchange="toggleOtroField('duplaIngreso1','duplaIngreso1Otro')">
+            <option value="">Seleccionar...</option>
+            <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+            <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+            <option>Otro</option>
+          </select>
+          <input type="text" id="duplaIngreso1Otro" placeholder="Especificar profesión..." style="display:none;margin-top:6px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+        </div>
+        <div>
+          <div class="dupla-label">Profesional 2</div>
+          <select id="duplaIngreso2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;" onchange="toggleOtroField('duplaIngreso2','duplaIngreso2Otro')">
+            <option value="">Seleccionar...</option>
+            <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+            <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+            <option>Otro</option>
+          </select>
+          <input type="text" id="duplaIngreso2Otro" placeholder="Especificar profesión..." style="display:none;margin-top:6px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+        </div>
+      </div>
+    </div>
+
+    <div id="itemsIngreso"></div>
+  </div>
+
+  <!-- III. PLAN DE CUIDADOS INTEGRAL Y CONSENSUADO -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">III</div>
+      <div class="section-title">Plan de Cuidados Integral y Consensuado</div>
+    </div>
+    <div id="itemsPlan"></div>
+  </div>
+
+  <!-- IV. SEGUIMIENTO INTEGRAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">IV</div>
+      <div class="section-title">Seguimiento Integral</div>
+    </div>
+
+    <div class="audit-item">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:500;">Profesional que realiza seguimiento</div>
+      <select id="profSeguimiento" onchange="toggleProfSeguimiento()" style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:14px;">
+        <option value="">Seleccionar...</option>
+        <option value="gestor">Gestor/a de caso ECICEP</option>
+        <option value="jefatura">Encargado/a o jefatura de sector</option>
+        <option value="tens">TENS</option>
+        <option value="otro">Otro</option>
+      </select>
+      <div class="prof-sub-wrap" id="profSegOtroWrap">
+        <div class="dupla-label" style="margin-top:8px;">Especificar</div>
+        <input type="text" id="profSeguimientoOtro" placeholder="Indicar profesional..." style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+      </div>
+      <div class="prof-sub-wrap" id="profSegSubWrap">
+        <div class="dupla-label" style="margin-top:8px;" id="profSegSubLabel">Profesión</div>
+        <select id="profSegSub" style="max-width:280px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+          <option value="">Seleccionar...</option>
+          <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+          <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="audit-item">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:500;">Modalidad de seguimiento</div>
+      <select id="modalidadSeg" style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:14px;">
+        <option value="">Seleccionar...</option>
+        <option>Telefónica</option><option>Domiciliaria</option><option>Otro</option>
+      </select>
+    </div>
+
+    <div id="itemsSeguimiento"></div>
+  </div>
+
+  <!-- V. CONTROL INTEGRAL -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-number">V</div>
+      <div class="section-title">Control Integral</div>
+    </div>
+
+    <div class="audit-item">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:500;">Profesional(es) que realizan control integral</div>
+      <select id="profControl" onchange="toggleProfControl()" style="max-width:360px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:14px;">
+        <option value="">Seleccionar...</option>
+        <option value="uno">Solo un profesional</option>
+        <option value="dupla">Dupla profesional</option>
+        <option value="otro">Otro</option>
+      </select>
+      <!-- Un profesional -->
+      <div class="prof-sub-wrap" id="profControlUnoWrap">
+        <div class="dupla-label" style="margin-top:8px;">Profesión</div>
+        <select id="profControlUno" style="max-width:280px;width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+          <option value="">Seleccionar...</option>
+          <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+          <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+        </select>
+      </div>
+      <!-- Dupla -->
+      <div class="dupla-wrap" id="duplaControlWrap">
+        <div>
+          <div class="dupla-label">Profesional 1</div>
+          <select id="duplaControl1" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+            <option value="">Seleccionar...</option>
+            <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+            <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+          </select>
+        </div>
+        <div>
+          <div class="dupla-label">Profesional 2</div>
+          <select id="duplaControl2" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-family:inherit;font-size:13px;">
+            <option value="">Seleccionar...</option>
+            <option>Médico/a</option><option>Enfermero/a</option><option>Kinesiólogo/a</option>
+            <option>Psicólogo/a</option><option>Nutricionista</option><option>Trabajador/a Social</option>
+          </select>
+        </div>
+      </div>
+      <!-- Otro -->
+      <div class="prof-sub-wrap" id="profControlOtroWrap">
+        <div class="dupla-label" style="margin-top:8px;">Especificar</div>
+        <input type="text" id="profControlOtroText" placeholder="Indicar profesional..." style="max-width:360px;">
+      </div>
+    </div>
+
+    <div id="itemsControl"></div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-action btn-warn" onclick="validarYGenerar()">📋 Generar Informe</button>
+    <button class="btn-action btn-secondary" onclick="guardarBorrador()">💾 Guardar borrador</button>
+    <button class="btn-action btn-secondary" onclick="cargarBorrador()">📂 Cargar borrador</button>
+    <button class="btn-action btn-success" id="btnImprimir" style="display:none;" onclick="imprimirInforme()">🖨 Imprimir / PDF</button>
+    <button class="btn-action" id="btnSheets" style="background:#1e7e34;color:white;" onclick="guardarEnSheets()">📊 Guardar en Google Sheets</button>
+  </div>
+  <div id="modalOverlay" class="modal-overlay" style="display:none;">
+    <div class="modal-box" id="modalBox">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-sub" id="modalSub"></div>
+      <ul class="modal-list" id="modalList"></ul>
+      <div class="modal-btns" id="modalBtns"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <div id="informe">
+    <div class="informe-header">
+      <h2>Informe de Auditoría ECICEP</h2>
+      <p id="inf-subtitle">Generado automáticamente</p>
+    </div>
+    <div class="informe-body" id="informeBody"></div>
+  </div>
+
+</div>
+
+<script>
+// ===================== TERRITORIO REGIÓN DE COQUIMBO =====================
+const TERRITORY = {
+  "Elqui":{
+    "La Serena":["CESFAM Emilio Schaffhauser","CESFAM PAC","CESFAM CARO","CECOSF Villa el Indio","CESFAM JPII","CECOSF Villa Alemania","CESFAM CRSH","CECOSF Villa Lambert","CESFAM Las Cias","CECOSF Arcos de Pinamar","Posta Lambert","Posta El Romero","Posta Algarrobito","Posta Las Rojas"],
+    "Coquimbo":["CECOSF Punta Mira","CESFAM Sergio Aguilar","CESFAM Lila Cortes","CESFAM San Juan","CESFAM Santa Cecilia","CESFAM Ts Blancas","CESFAM Tongoy","Posta Guanaqueros","CESFAM Pan de Azucar","Posta Tambillos","CESFAM El Sauce"],
+    "La Higuera":["CESFAM La Higuera","Posta Los Choros","Posta Caleta Hornos","Posta El Trapiche"],
+    "Vicuña":["CESFAM Calingasta","Posta El Molle","Posta El Tambo","Posta Talcuna","Posta Gualliguaica","Posta Peralillo","Posta Diaguitas","Posta Rivadavia","Posta Chapilca","Posta Huanta","Hospital San Juan de Dios"],
+    "Paihuano":["CESFAM Paihuano","Posta Horcon","Posta Monte Grande","Posta Pisco Elqui"],
+    "Andacollo":["Hospital Dr José Arraño"]
+  },
+  "Limarí":{
+    "Ovalle":["CESFAM Jorge Jordan","CESFAM Cerrillo de Tamaya","Posta Barraza","Posta Las Sossas","CESFAM Fray Jorge","CECOSF Los Copihues","CESFAM Macuada","CECOSF San Jose de la Dehesa","CECOSF Colonia Limari","CESFAM Sotaqui","Posta Camarico","Posta Recoleta","Posta Chalinga","Posta Alcones Bajos","Posta Cerro Blanco","Posta Hornillos","Posta Huamalata"],
+    "Monte Patria":["CESFAM Chañaral Alto","Posta Huatulame","CESFAM Monte Patria","Posta Chilecito","Posta Rapel","Posta Hacienda Valdivia","Posta Mialqui","CESFAM Caren","Posta Pedregal","Posta El Maiten","Posta Tulahuen","Posta Ramadas de Tulahuen","CESFAM El Palqui"],
+    "Punitaqui":["CESFAM Punitaqui","Posta Divisadero","Posta El Parral de Quiles","Posta San Pedro de Quiles"],
+    "Río Hurtado":["CESFAM El Pichasca","Posta El Chañar","Posta Hurtado","Posta Las Breas","Posta Samo Alto","Posta Seron","Posta Tabaqueros"],
+    "Combarbalá":["Hospital San Juan de Dios","CECOSF Cogoti 18","Posta Barrancas","Posta El Durazno","Posta El Huacho","Posta El Sauce","Posta La Ligua","Posta Manquehua","Posta Quilitapia","Posta Ramadilla","Posta San Marcos","Posta Valle Hermoso","Posta San Lorenzo"]
+  },
+  "Choapa":{
+    "Los Vilos":["Hospital San Pedro","Posta Quilimari","Posta Caimanes","Posta Guangualí","Posta Tilama","Posta Los Condores"],
+    "Canela":["CESFAM Canela","Posta Agua Fria","Posta Canela Alta","Posta Los Rulos","Posta Huentelauquen","Posta Espiritu Santo","Posta Mincha Sur","Posta Jabonería","Posta Quebrada Linares","Posta Mincha Norte"],
+    "Illapel":["CESFAM Urbano","CESFAM Villa San Rafael","Posta Carcamo","Posta Huintil","Posta Matancilla","Posta Plan de Hornos","Posta Santa Virginia","Posta Tunga Norte","Posta Cañas 1","Posta Limahuida","Posta Peralillo","Posta Pintacura Sur","Posta Socavon","Posta Tunga Sur"],
+    "Salamanca":["Hospital Salamanca","CESFAM Valle Alto","Posta Arboleda Grande","Posta Camisa","Posta Cunlagua","Posta Llimpo","Posta Quelen Bajo","Posta San Agustin","Posta Tranquilla","Posta Tahuinco","Posta Cuncumen"]
+  }
+};
+
+function fillSelect(id,opts,ph){
+  const s=document.getElementById(id);
+  s.innerHTML=`<option value="">${ph}</option>`+opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+}
+function actualizarComunas(){
+  const p=document.getElementById('provincia').value;
+  const sc=document.getElementById('comuna'), se=document.getElementById('centroSalud');
+  sc.innerHTML='<option value="">— Comuna —</option>'; se.innerHTML='<option value="">— Establecimiento —</option>';
+  sc.disabled=!p; se.disabled=true;
+  if(p&&TERRITORY[p]) fillSelect('comuna',Object.keys(TERRITORY[p]),'— Comuna —');
+}
+function actualizarCentros(){
+  const p=document.getElementById('provincia').value, c=document.getElementById('comuna').value;
+  const se=document.getElementById('centroSalud');
+  se.innerHTML='<option value="">— Establecimiento —</option>'; se.disabled=!c;
+  if(p&&c&&TERRITORY[p]&&TERRITORY[p][c]) fillSelect('centroSalud',TERRITORY[p][c],'— Establecimiento —');
+}
+(function(){fillSelect('provincia',Object.keys(TERRITORY),'— Provincia —');})();
+
+// ===================== OBSERVACIONES =====================
+function toggleObs(id){
+  const w=document.getElementById(`obsWrap_${id}`);
+  const b=document.querySelector(`[onclick="toggleObs(${id})"]`);
+  const open=w.classList.toggle('open');
+  b.textContent=open?'− Ocultar observación':'+ Agregar observación';
+  if(open) document.getElementById(`obs_${id}`).focus();
+}
+
+// ── Motivo NA ──
+function toggleNaReason(id,idx){
+  const key=`naReason_${id}_${idx}`;
+  let el=document.getElementById(key);
+  if(!el){
+    const wrap=document.getElementById(`obsWrap_${id}`);
+    if(!wrap.classList.contains('open')) toggleObs(id);
+    const r=document.createElement('textarea');
+    r.id=key; r.className='obs-na-reason';
+    r.placeholder=`Motivo por el que no aplica: "${ITEMS.find(i=>i.id===id)?.opciones[idx]?.label||''}"`;
+    r.rows=2;
+    wrap.appendChild(r);
+  }
+}
+
+// ── Toast ──
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Guardar borrador ──
+function guardarBorrador(){
+  const data={
+    fechaAplicacion:document.getElementById('fechaAplicacion').value,
+    tipoEval:document.getElementById('tipoEval').value,
+    nombreAplicador:document.getElementById('nombreAplicador').value,
+    provincia:document.getElementById('provincia').value,
+    comuna:document.getElementById('comuna').value,
+    centroSalud:document.getElementById('centroSalud').value,
+    rutFicha:document.getElementById('rutFicha').value,
+    clasificacion:document.getElementById('clasificacion').value,
+    fechaIngreso:document.getElementById('fechaIngreso').value,
+    profIngreso:document.getElementById('profIngreso').value,
+    duplaIngreso1:document.getElementById('duplaIngreso1').value,
+    duplaIngreso2:document.getElementById('duplaIngreso2').value,
+    profSeguimiento:document.getElementById('profSeguimiento').value,
+    profSegSub:document.getElementById('profSegSub').value,
+    modalidadSeg:document.getElementById('modalidadSeg').value,
+    profControl:document.getElementById('profControl').value,
+    profControlUno:document.getElementById('profControlUno').value,
+    duplaControl1:document.getElementById('duplaControl1').value,
+    duplaControl2:document.getElementById('duplaControl2').value,
+    profControlOtroText:document.getElementById('profControlOtroText').value,
+    respuestas:JSON.parse(JSON.stringify(respuestas)),
+    multiState:JSON.parse(JSON.stringify(multiState)),
+    multiNaState:JSON.parse(JSON.stringify(multiNaState)),
+    observaciones:{}
+  };
+  ITEMS.forEach(item=>{
+    const el=document.getElementById(`obs_${item.id}`);
+    if(el&&el.value) data.observaciones[item.id]=el.value;
+  });
+  const json=JSON.stringify(data);
+  const blob=new Blob([json],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`borrador_ecicep_${data.rutFicha||'sin_rut'}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('Borrador guardado correctamente','success');
+}
+
+// ── Cargar borrador ──
+function cargarBorrador(){
+  const input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        const setVal=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+        setVal('fechaAplicacion',data.fechaAplicacion);
+        setVal('tipoEval',data.tipoEval);
+        setVal('nombreAplicador',data.nombreAplicador);
+        // territorio encadenado
+        if(data.provincia){
+          document.getElementById('provincia').value=data.provincia;
+          actualizarComunas();
+          setTimeout(()=>{
+            if(data.comuna){document.getElementById('comuna').value=data.comuna;actualizarCentros();}
+            setTimeout(()=>{if(data.centroSalud)document.getElementById('centroSalud').value=data.centroSalud;},50);
+          },50);
+        }
+        setVal('rutFicha',data.rutFicha);
+        setVal('clasificacion',data.clasificacion);
+        setVal('fechaIngreso',data.fechaIngreso);
+        if(data.fechaIngreso) validarFechaIngreso();
+        setVal('profIngreso',data.profIngreso); toggleDuplaIngreso();
+        setVal('duplaIngreso1',data.duplaIngreso1);
+        setVal('duplaIngreso2',data.duplaIngreso2);
+        setVal('profSeguimiento',data.profSeguimiento); toggleProfSeguimiento();
+        setVal('profSegSub',data.profSegSub);
+        setVal('modalidadSeg',data.modalidadSeg);
+        setVal('profControl',data.profControl); toggleProfControl();
+        setVal('profControlUno',data.profControlUno);
+        setVal('duplaControl1',data.duplaControl1);
+        setVal('duplaControl2',data.duplaControl2);
+        setVal('profControlOtroText',data.profControlOtroText);
+        // respuestas radio
+        Object.keys(data.respuestas||{}).forEach(id=>{
+          const val=data.respuestas[id];
+          respuestas[parseInt(id)]=val;
+          const item=ITEMS.find(i=>i.id===parseInt(id));
+          if(item&&item.tipo==='radio'){
+            item.opciones.forEach(op=>{
+              const k=op.replace(/[^a-z0-9]/gi,'_');
+              const b=document.getElementById(`btn_${id}_${k}`);
+              if(b) b.className='opt-btn';
+            });
+            const k=val.replace(/[^a-z0-9]/gi,'_');
+            const sel=document.getElementById(`btn_${id}_${k}`);
+            if(sel){
+              if(val.startsWith('Sí')) sel.className='opt-btn selected-si';
+              else if(val==='No aplica') sel.className='opt-btn selected-na';
+              else sel.className='opt-btn selected-no';
+            }
+          }
+        });
+        // multi state
+        Object.keys(data.multiState||{}).forEach(id=>{
+          multiState[parseInt(id)]=data.multiState[id];
+          Object.keys(data.multiState[id]).forEach(idx=>{
+            const el=document.getElementById(`chk_${id}_${idx}`);
+            if(el) el.className='chk-btn'+(data.multiState[id][idx]?' checked':'');
+          });
+        });
+        // multi na state
+        Object.keys(data.multiNaState||{}).forEach(id=>{
+          multiNaState[parseInt(id)]=data.multiNaState[id];
+          Object.keys(data.multiNaState[id]).forEach(idx=>{
+            const el=document.getElementById(`na_${id}_${idx}`);
+            if(el) el.className='multi-na-btn'+(data.multiNaState[id][idx]?' na-active':'');
+          });
+        });
+        // observaciones
+        Object.keys(data.observaciones||{}).forEach(id=>{
+          const el=document.getElementById(`obs_${id}`);
+          if(el&&data.observaciones[id]){
+            el.value=data.observaciones[id];
+            toggleObs(parseInt(id));
+          }
+        });
+        actualizarScore(); actualizarProgreso();
+        showToast('Borrador cargado correctamente','success');
+      }catch(err){showToast('Error al cargar el archivo JSON','warn');}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ── Validar antes de generar ──
+function validarYGenerar(){
+  const obligPend=ITEMS.filter(item=>{
+    if(!item.obligatorio) return false;
+    if(item.tipo==='radio') return respuestas[item.id]===undefined;
+    if(item.tipo==='multi_dim'){
+      const st=multiState[item.id]||{};
+      const na=multiNaState[item.id]||{};
+      return !Object.values(st).some(Boolean)&&!Object.values(na).some(Boolean);
+    }
+    return false;
+  });
+  if(obligPend.length>0){
+    const box=document.getElementById('modalBox');
+    box.className='modal-box';
+    document.getElementById('modalTitle').textContent='⚠ Ítems obligatorios pendientes';
+    document.getElementById('modalSub').textContent=`Hay ${obligPend.length} ítem${obligPend.length>1?'s obligatorios':'obligatorio'} sin responder. ¿Deseas continuar de todas formas?`;
+    document.getElementById('modalList').innerHTML=obligPend.map(i=>`<li><strong>Ítem ${i.num}:</strong> ${i.texto.substring(0,70)}${i.texto.length>70?'...':''}</li>`).join('');
+    document.getElementById('modalBtns').innerHTML=`
+      <button onclick="cerrarModal()" style="background:var(--gris-light);color:var(--gris);">Volver y completar</button>
+      <button onclick="cerrarModal();generarInforme();" style="background:var(--azul);color:white;">Generar igual</button>`;
+    document.getElementById('modalOverlay').style.display='flex';
+  } else {
+    generarInforme();
+  }
+}
+function cerrarModal(){document.getElementById('modalOverlay').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape') cerrarModal();});
+
+// ── Imprimir ──
+function imprimirInforme(){window.print();}
+
+// ===================== RUT FORMAT =====================
+function formatRut(el){
+  let v=el.value.replace(/[^0-9kK]/g,'');
+  if(v.length>1) v=v.slice(0,-1)+'-'+v.slice(-1);
+  el.value=v.toUpperCase();
+}
+
+// ===================== VALIDACIÓN FECHA INGRESO =====================
+function validarFechaIngreso(){
+  const fi=document.getElementById('fechaIngreso');
+  const hint=document.getElementById('fechaIngresoHint');
+  if(!fi.value){hint.textContent='';fi.classList.remove('field-error');return;}
+  const ingreso=new Date(fi.value+'T00:00:00');
+  const hoy=new Date();
+  const meses=Math.floor((hoy-ingreso)/(1000*60*60*24*30.44));
+  fi.classList.remove('field-error');
+  hint.className='field-hint';
+  hint.textContent=meses>0?`Tiempo transcurrido: ${meses} meses.`:'';
+}
+
+// ===================== PROFESIONALES — DESPLEGAR =====================
+function toggleDuplaIngreso(){
+  const v=document.getElementById('profIngreso').value;
+  document.getElementById('duplaIngresoWrap').classList.toggle('visible',v==='dupla');
+  document.getElementById('profIngresoOtroWrap').classList.toggle('visible',v==='otro');
+}
+function toggleOtroField(selId,inputId){
+  const v=document.getElementById(selId).value;
+  const inp=document.getElementById(inputId);
+  if(inp) inp.style.display=(v==='Otro')?'block':'none';
+}
+
+function toggleProfSeguimiento(){
+  const v=document.getElementById('profSeguimiento').value;
+  const wrap=document.getElementById('profSegSubWrap');
+  const lbl=document.getElementById('profSegSubLabel');
+  const mostrar=(v==='gestor'||v==='jefatura');
+  wrap.classList.toggle('visible',mostrar);
+  if(mostrar) lbl.textContent=(v==='gestor'?'Profesión (Gestor/a de caso)':'Profesión (Encargado/a o Jefatura)');
+  document.getElementById('profSegOtroWrap').classList.toggle('visible',v==='otro');
+}
+function toggleProfControl(){
+  const v=document.getElementById('profControl').value;
+  document.getElementById('profControlUnoWrap').classList.toggle('visible',v==='uno');
+  document.getElementById('duplaControlWrap').classList.toggle('visible',v==='dupla');
+  document.getElementById('profControlOtroWrap').classList.toggle('visible',v==='otro');
+}
+
+// ===================== ITEMS =====================
+// seccion: 'ingreso' = items 1-9  |  'plan' = items 10-16  |  'seguimiento' = 17-22  |  'control' = 23-31
+// Orden control: 23,24,25,26,27,28,30,31,29
+const ITEMS=[
+  // II INGRESO
+  {id:1,seccion:'ingreso',num:'1',
+   texto:'¿El ingreso se encuentra agendado como "Ingreso integral personas según su clasificación de riesgo (G1-G2-G3)"?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:2,seccion:'ingreso',num:'2',
+   texto:'¿El ingreso registra percepción de salud de la persona?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:3,seccion:'ingreso',num:'3',
+   texto:'La anamnesis del ingreso contiene registro de las siguientes dimensiones:',
+   tipo:'dim4_simple',obligatorio:false,maxPts:1,
+   opciones:['Biológico','Familiar','Psicológico/Espiritual','Social-comunitario'],
+   nota:''},
+  {id:4,seccion:'ingreso',num:'4',
+   texto:'¿El diagnóstico/valoración integral se basa en los hallazgos de la anamnesis?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:5,seccion:'ingreso',num:'5',
+   texto:'¿El ingreso presenta registro de vigencia de tamizajes y exámenes preventivos pertinentes (ej.: EMPA, EMPAM, PAP, entre otros)?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:6,seccion:'ingreso',num:'6',
+   texto:'¿El ingreso presenta registro de diagnósticos de acuerdo con catálogo AVIS y marco conceptual ECICEP?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:7,seccion:'ingreso',num:'7',
+   texto:'¿El ingreso registra actividades según corresponda, por diagnóstico y sus formularios correspondientes (ej.: encuesta ERC, PedsQL)?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:8,seccion:'ingreso',num:'8',
+   texto:'¿El ingreso cuenta con receta unificada?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:9,seccion:'ingreso',num:'9',
+   texto:'¿El ingreso registra plan de cuidados integral y consensuado según formato local aprobado por Servicio de Salud?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  // III PLAN DE CUIDADOS
+  {id:10,seccion:'plan',num:'10',
+   texto:'¿Se incluyen los problemas priorizados y consensuados por la persona y/o familia?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:11,seccion:'plan',num:'11',
+   texto:'¿Se incluyen los objetivos/metas priorizados y consensuados por la persona y/o familia?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:12,seccion:'plan',num:'12',
+   texto:'¿Se incluyen opciones ofrecidas y conversadas con la persona y/o familia?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:13,seccion:'plan',num:'13',
+   texto:'¿Se incluyen actividades priorizadas y consensuadas coherentes con los objetivos?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:14,seccion:'plan',num:'14',
+   texto:'¿Se definen plazos y responsables de los acuerdos?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:15,seccion:'plan',num:'15',
+   texto:'¿Se realiza recomendación de activos comunitarios según corresponda?',
+   tipo:'radio',opciones:['Sí','No','No aplica'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0,'No aplica':1}},
+  {id:16,seccion:'plan',num:'16',
+   texto:'¿Se estipula la realización de seguimiento integral?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  // IV SEGUIMIENTO
+  {id:17,seccion:'seguimiento',num:'17',
+   texto:'¿El seguimiento se encuentra agendado como "Seguimiento a distancia con riesgo alto (G3)"?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:18,seccion:'seguimiento',num:'18',
+   texto:'En el seguimiento se evalúan los siguientes aspectos:',
+   tipo:'multi5',obligatorio:false,maxPts:1,
+   opciones:[
+     {label:'Sintomatología o descompensación',pts:.2,naOk:false},
+     {label:'Adherencia a tratamiento',pts:.2,naOk:false},
+     {label:'Consulta en urgencias',pts:.2,naOk:false},
+     {label:'Hospitalización',pts:.2,naOk:false},
+     {label:'Recomendación de activos comunitarios',pts:.2,naOk:true}
+   ],nota:''},
+  {id:19,seccion:'seguimiento',num:'19',
+   texto:'¿Se realiza seguimiento del plan y se refuerzan las actividades/compromisos?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:20,seccion:'seguimiento',num:'20',
+   texto:'Si se pesquisa nueva problemática, ¿se revisa con el gestor de caso o equipo tratante?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:21,seccion:'seguimiento',num:'21',
+   texto:'¿El seguimiento realizado se registra en el plan de cuidados integrales consensuado?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:22,seccion:'seguimiento',num:'22',
+   texto:'¿Se registra próxima intervención (control, seguimiento u otro)?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  // V CONTROL — orden: 23,24,25,26,27,28,30,31,29
+  {id:23,seccion:'control',num:'23',orden:1,
+   texto:'¿El control se encuentra agendado como "Control integral con riesgo alto (G1-G2-G3)"?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:24,seccion:'control',num:'24',orden:2,
+   texto:'El control presenta registro integral de las siguientes dimensiones:',
+   tipo:'dim4_simple',obligatorio:false,maxPts:1,
+   opciones:['Biológico','Familiar','Psicológico/Espiritual','Social-comunitario'],
+   nota:''},
+  {id:25,seccion:'control',num:'25',orden:3,
+   texto:'En el control se evalúan los siguientes aspectos:',
+   tipo:'multi5',obligatorio:false,maxPts:1,
+   opciones:[
+     {label:'Sintomatología o descompensación',pts:.2,naOk:false},
+     {label:'Adherencia a tratamiento',pts:.2,naOk:false},
+     {label:'Consulta en urgencias',pts:.2,naOk:false},
+     {label:'Hospitalización',pts:.2,naOk:false},
+     {label:'Recomendación de activos comunitarios',pts:.2,naOk:true}
+   ],nota:''},
+  {id:26,seccion:'control',num:'26',orden:4,
+   texto:'¿Se cuenta con registros de control de parámetros clínicos?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:27,seccion:'control',num:'27',orden:5,
+   texto:'¿Se registra la percepción de salud de la persona?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:true,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:28,seccion:'control',num:'28',orden:6,
+   texto:'¿Se registra la revisión de exámenes, procedimientos y/o controles según corresponda?',
+   tipo:'radio',opciones:['Sí','No','No aplica'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0,'No aplica':1}},
+  {id:30,seccion:'control',num:'29',orden:7,
+   texto:'¿Se registran nuevos formularios según corresponda (ej.: encuesta ERC, PedsQL)?',
+   tipo:'radio',opciones:['Sí','No','No aplica'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0,'No aplica':1}},
+  {id:31,seccion:'control',num:'30',orden:8,
+   texto:'¿El control presenta registro de diagnósticos de acuerdo con catálogo AVIS y marco conceptual ECICEP?',
+   tipo:'radio',opciones:['Sí','No'],obligatorio:false,maxPts:1,puntaje:{'Sí':1,'No':0}},
+  {id:29,seccion:'control',num:'31',orden:9,
+   texto:'¿Se registra actualización del plan de cuidados respecto al realizado previamente?',
+   tipo:'radio',opciones:['Sí','No'],
+   obligatorio:true,maxPts:1,
+   puntaje:{'Sí':1,'No':0}}
+];
+
+// Estado
+const respuestas={};
+const multiState={}; // {itemId: {idx: true/false}}
+const multiNaState={}; // {itemId: {idx: true/false}} — "no aplica" por sub-ítem
+const dim4State={}; // {itemId: {idx: 'si'|'no'|'na'|null}}
+const multi5State={}; // {itemId: {idx: 'si'|'no'|'na'|null}}
+// drag state
+let dragSrcItemId=null,dragSrcIdx=null;
+
+// ===================== GOOGLE SHEETS INTEGRATION =====================
+const GSHEETS_CLIENT_ID = '1090869348511-v052om5l3l6rmu2pbitnu96asj2cpl1g.apps.googleusercontent.com';
+const GSHEETS_SPREADSHEET_ID = '1Lxwgnh-J2oQ7Us3wAFDIpSwSFbBt3LxLIyVGwnnnsSc';
+const GSHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+let gsheetsToken = null;
+
+function guardarEnSheets(){
+  if(gsheetsToken){
+    enviarASheets(gsheetsToken);
+    return;
+  }
+  // Verificar que la librería de Google esté disponible
+  if(typeof google === 'undefined' || !google.accounts){
+    showToast('Cargando autenticación Google, intenta en unos segundos...', 'warn');
+    // Intentar cargar el script dinámicamente
+    if(!document.getElementById('gsi-script')){
+      const s = document.createElement('script');
+      s.id = 'gsi-script';
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = () => { showToast('Listo, haz clic nuevamente en el botón', 'success'); };
+      document.head.appendChild(s);
+    }
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GSHEETS_CLIENT_ID,
+    scope: GSHEETS_SCOPE,
+    callback: (response) => {
+      if(response.error){
+        showToast('Error de autenticación: ' + response.error, 'warn');
+        return;
+      }
+      gsheetsToken = response.access_token;
+      enviarASheets(gsheetsToken);
+    }
+  });
+  client.requestAccessToken();
+}
+
+async function enviarASheets(token){
+  showToast('Guardando en Google Sheets...', '');
+
+  // Construir fila de datos
+  const sc = calcScores();
+  const global = pct(sc.totalObt, sc.totalDen);
+  const oblig = pct(sc.obligObt, sc.obligDen);
+  const cumple = global >= 80 && oblig >= 80 ? 'Sí' : 'No';
+
+  const fecha = document.getElementById('fechaAplicacion').value || '';
+  const tipoEval = document.getElementById('tipoEval').value || '';
+  const aplicador = document.getElementById('nombreAplicador').value || '';
+  const provincia = document.getElementById('provincia').value || '';
+  const comuna = document.getElementById('comuna').value || '';
+  const centro = document.getElementById('centroSalud').value || '';
+  const rut = document.getElementById('rutFicha').value || '';
+  const clasif = document.getElementById('clasificacion').value || '';
+  const fechaIngreso = document.getElementById('fechaIngreso').value || '';
+
+  // Puntajes por sección
+  const ingP = pct(sc.sec.ingreso.obt, sc.sec.ingreso.den);
+  const planP = pct(sc.sec.plan.obt, sc.sec.plan.den);
+  const segP = pct(sc.sec.seguimiento.obt, sc.sec.seguimiento.den);
+  const ctrlP = pct(sc.sec.control.obt, sc.sec.control.den);
+
+  // Respuestas por ítem
+  const respItems = ITEMS.map(item => {
+    if(item.tipo === 'radio'){
+      return respuestas[item.id] !== undefined ? respuestas[item.id] : '';
+    }
+    if(item.tipo === 'dim4_simple'){
+      const st = dim4sState[item.id] || {};
+      return item.opciones.map((op,idx) => `${op}: ${st[idx]||'-'}`).join(' | ');
+    }
+    if(item.tipo === 'dim4'){
+      const st = dim4State[item.id] || {};
+      return item.opciones.map((op,idx) => `${op}: ${st[idx]||'-'}`).join(' | ');
+    }
+    if(item.tipo === 'multi5'){
+      const st = multi5State[item.id] || {};
+      return item.opciones.map((op,idx) => `${op.label}: ${st[idx]||'-'}`).join(' | ');
+    }
+    return '';
+  });
+
+  // Profesionales
+  const getVal = id => { const el=document.getElementById(id); return el?el.value:''; };
+
+  // Ingreso
+  const profIngresoVal = getVal('profIngreso');
+  let profIngresoStr = profIngresoVal;
+  if(profIngresoVal==='familia') profIngresoStr='Médico/a de Familia';
+  else if(profIngresoVal==='dupla'){
+    const p1=getVal('duplaIngreso1')==='Otro'?getVal('duplaIngreso1Otro'):getVal('duplaIngreso1');
+    const p2=getVal('duplaIngreso2')==='Otro'?getVal('duplaIngreso2Otro'):getVal('duplaIngreso2');
+    profIngresoStr=`Dupla: ${p1} / ${p2}`;
+  } else if(profIngresoVal==='otro') profIngresoStr=`Otro: ${getVal('profIngresoOtroText')}`;
+
+  // Seguimiento
+  const profSegVal = getVal('profSeguimiento');
+  let profSegStr = profSegVal;
+  if(profSegVal==='gestor') profSegStr=`Gestor/a de caso ECICEP (${getVal('profSegSub')})`;
+  else if(profSegVal==='jefatura') profSegStr=`Jefatura de sector (${getVal('profSegSub')})`;
+  else if(profSegVal==='tens') profSegStr='TENS';
+  else if(profSegVal==='otro') profSegStr=`Otro: ${getVal('profSeguimientoOtro')}`;
+  const modalidad = getVal('modalidadSeg');
+
+  // Control
+  const profCtrlVal = getVal('profControl');
+  let profCtrlStr = profCtrlVal;
+  if(profCtrlVal==='uno') profCtrlStr=`Solo: ${getVal('profControlUno')}`;
+  else if(profCtrlVal==='dupla'){
+    const p1=getVal('duplaControl1'); const p2=getVal('duplaControl2');
+    profCtrlStr=`Dupla: ${p1} / ${p2}`;
+  } else if(profCtrlVal==='otro') profCtrlStr=`Otro: ${getVal('profControlOtroText')}`;
+
+  const fila = [
+    fecha, tipoEval, aplicador, provincia, comuna, centro, rut, clasif, fechaIngreso,
+    profIngresoStr, profSegStr, modalidad, profCtrlStr,
+    oblig + '%', global + '%', cumple,
+    ingP + '%', planP + '%', segP + '%', ctrlP + '%',
+    sc.obligObt.toFixed(2), sc.obligDen.toFixed(2),
+    sc.totalObt.toFixed(2), sc.totalDen.toFixed(2),
+    ...respItems
+  ];
+
+  // Verificar si la hoja tiene encabezados, si no agregarlos
+  try {
+    const checkRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${GSHEETS_SPREADSHEET_ID}/values/A1:A1`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const checkData = await checkRes.json();
+    const tieneEncabezados = checkData.values && checkData.values.length > 0;
+
+    if(!tieneEncabezados){
+      // Crear encabezados
+      const encabezados = [
+        'Fecha Auditoría','Tipo Evaluación','Auditor/a','Provincia','Comuna','Centro de Salud',
+        'RUT Ficha','Clasificación Riesgo','Fecha Ingreso ECICEP',
+        'Profesional(es) Ingreso','Profesional Seguimiento','Modalidad Seguimiento','Profesional(es) Control',
+        '% Ítems Obligatorios','% Puntaje Global','Cumple (≥80%)',
+        '% II Ingreso','% III Plan Cuidados','% IV Seguimiento','% V Control',
+        'Pts Oblig Obtenidos','Pts Oblig Total','Pts Global Obtenidos','Pts Global Total',
+        ...ITEMS.map(i => `Ítem ${i.num} - ${i.texto.substring(0,50)}`)
+      ];
+      await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${GSHEETS_SPREADSHEET_ID}/values/A1:append?valueInputOption=RAW`,
+        {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ values: [encabezados] })
+        }
+      );
+    }
+
+    // Agregar fila de datos
+    const appendRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${GSHEETS_SPREADSHEET_ID}/values/A1:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ values: [fila] })
+      }
+    );
+
+    if(appendRes.ok){
+      showToast('✓ Guardado en Google Sheets correctamente', 'success');
+    } else {
+      const err = await appendRes.json();
+      showToast('Error al guardar: ' + (err.error?.message || 'desconocido'), 'warn');
+    }
+  } catch(err){
+    showToast('Error de conexión: ' + err.message, 'warn');
+    console.error(err);
+  }
+}
+
+// ===================== RENDER ITEMS =====================
+function renderItems(containerId,seccion){
+  const cont=document.getElementById(containerId);
+  let items=ITEMS.filter(i=>i.seccion===seccion);
+  if(seccion==='control') items=items.slice().sort((a,b)=>a.orden-b.orden);
+
+  cont.innerHTML=items.map(item=>{
+    const bCls=item.obligatorio?'ob':'no';
+    const bTxt=item.obligatorio?'Obligatorio':'No obligatorio';
+    const nCls=item.obligatorio?'obligatorio':'';
+    let inputHtml='';
+
+    if(item.tipo==='radio'){
+      inputHtml=`<div class="options-row">`+
+        item.opciones.map(op=>{
+          const key=op.replace(/[^a-z0-9]/gi,'_');
+          return `<label class="opt-btn" id="btn_${item.id}_${key}">
+            <input type="radio" name="q${item.id}" value="${op}" onchange="handleRadio(${item.id},'${op.replace(/'/g,"\\'")}')"> ${op}
+          </label>`;
+        }).join('')+`</div>`;
+    } else if(item.tipo==='dim4'){
+      inputHtml=`<table class="dim4-table">
+        <thead><tr>
+          <th>Dimensión</th>
+          <th class="col-op">Sí descrito</th>
+          <th class="col-op">No descrito</th>
+          <th class="col-op">No aplica</th>
+        </tr></thead>
+        <tbody id="dim4body_${item.id}">
+        ${item.opciones.map((op,idx)=>`
+          <tr id="dim4row_${item.id}_${idx}">
+            <td style="font-weight:500">${op}</td>
+            <td class="col-op"><span class="dim4-opt" id="d4_${item.id}_${idx}_si" onclick="handleDim4(${item.id},${idx},'si')">Sí</span></td>
+            <td class="col-op"><span class="dim4-opt" id="d4_${item.id}_${idx}_no" onclick="handleDim4(${item.id},${idx},'no')">No</span></td>
+            <td class="col-op"><span class="dim4-opt" id="d4_${item.id}_${idx}_na" onclick="handleDim4(${item.id},${idx},'na')">N/A</span></td>
+          </tr>`).join('')}
+        </tbody></table>`;
+    } else if(item.tipo==='dim4_simple'){
+      inputHtml=`<table class="dim4s-table">
+        <thead><tr>
+          <th>Dimensión</th>
+          <th class="col-op">Sí descrito (0,25)</th>
+          <th class="col-op">No descrito</th>
+        </tr></thead>
+        <tbody>
+        ${item.opciones.map((op,idx)=>`
+          <tr>
+            <td style="font-weight:500">${op}</td>
+            <td class="col-op"><span class="dim4-opt" id="d4s_${item.id}_${idx}_si" onclick="handleDim4s(${item.id},${idx},'si')">Sí</span></td>
+            <td class="col-op"><span class="dim4-opt" id="d4s_${item.id}_${idx}_no" onclick="handleDim4s(${item.id},${idx},'no')">No</span></td>
+          </tr>`).join('')}
+        </tbody></table>`;
+    } else if(item.tipo==='multi5'){
+      inputHtml=`<table class="multi5-table">
+        <thead><tr>
+          <th>Aspecto evaluado</th>
+          <th class="col-op">Sí</th>
+          <th class="col-op">No</th>
+          ${item.opciones.some(o=>o.naOk)?'<th class="col-op">N/A</th>':''}
+          <th class="col-op" style="width:50px">Pts</th>
+        </tr></thead>
+        <tbody>
+        ${item.opciones.map((op,idx)=>`
+          <tr>
+            <td>${op.label}</td>
+            <td class="col-op"><span class="m5-opt" id="m5_${item.id}_${idx}_si" onclick="handleM5(${item.id},${idx},'si')">Sí</span></td>
+            <td class="col-op"><span class="m5-opt" id="m5_${item.id}_${idx}_no" onclick="handleM5(${item.id},${idx},'no')">No</span></td>
+            ${item.opciones.some(o=>o.naOk)?`<td class="col-op">${op.naOk?`<span class="m5-opt" id="m5_${item.id}_${idx}_na" onclick="handleM5(${item.id},${idx},'na')">N/A</span>`:''}</td>`:''}
+            <td class="col-op" style="font-size:11px;color:var(--muted);">${op.pts}</td>
+          </tr>`).join('')}
+        </tbody></table>`;
+    }
+
+    return `<div class="audit-item" id="audititem_${item.id}">
+      <div class="item-header">
+        <span class="item-num ${nCls}">${item.num}</span>
+        <span class="item-text">${item.texto}</span>
+        <span class="badge-oblig ${bCls}">${bTxt} · ${item.maxPts} pt</span>
+      </div>
+      ${inputHtml}
+      <button class="obs-toggle" onclick="toggleObs(${item.id})">+ Agregar observación</button>
+      <div class="obs-field-wrap" id="obsWrap_${item.id}">
+        <textarea class="obs-field" id="obs_${item.id}" placeholder="Observaciones del auditor para este ítem..." rows="2" oninput="actualizarProgreso()"></textarea>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+renderItems('itemsIngreso','ingreso');
+renderItems('itemsPlan','plan');
+renderItems('itemsSeguimiento','seguimiento');
+renderItems('itemsControl','control');
+
+// ===================== HANDLERS =====================
+function handleRadio(id,val){
+  respuestas[id]=val;
+  const item=ITEMS.find(i=>i.id===id);
+  item.opciones.forEach(op=>{
+    const k=op.replace(/[^a-z0-9]/gi,'_');
+    const b=document.getElementById(`btn_${id}_${k}`);
+    if(b) b.className='opt-btn';
+  });
+  const k=val.replace(/[^a-z0-9]/gi,'_');
+  const sel=document.getElementById(`btn_${id}_${k}`);
+  if(sel){
+    if(val.startsWith('Sí')) sel.className='opt-btn selected-si';
+    else if(val==='No aplica') sel.className='opt-btn selected-na';
+    else sel.className='opt-btn selected-no';
+  }
+  actualizarScore(); actualizarProgreso();
+}
+
+function handleChk(id,idx){
+  if(!multiState[id]) multiState[id]={};
+  // Si estaba marcado como NA, quitarlo
+  if(multiNaState[id]&&multiNaState[id][idx]){
+    multiNaState[id][idx]=false;
+    const nb=document.getElementById(`na_${id}_${idx}`);
+    if(nb) nb.className='multi-na-btn';
+  }
+  multiState[id][idx]=!multiState[id][idx];
+  const el=document.getElementById(`chk_${id}_${idx}`);
+  if(el) el.className='chk-btn'+(multiState[id][idx]?' checked':'');
+  actualizarScore(); actualizarProgreso();
+}
+
+function handleNa(id,idx){
+  if(!multiNaState[id]) multiNaState[id]={};
+  // Si estaba chequeado, quitarlo
+  if(multiState[id]&&multiState[id][idx]){
+    multiState[id][idx]=false;
+    const cb=document.getElementById(`chk_${id}_${idx}`);
+    if(cb) cb.className='chk-btn';
+  }
+  multiNaState[id][idx]=!multiNaState[id][idx];
+  const nb=document.getElementById(`na_${id}_${idx}`);
+  if(nb) nb.className='multi-na-btn'+(multiNaState[id][idx]?' na-active':'');
+  actualizarScore(); actualizarProgreso();
+}
+
+// ── dim4 handler ──
+function handleDim4(id,idx,val){
+  if(!dim4State[id]) dim4State[id]={};
+  dim4State[id][idx]=dim4State[id][idx]===val?null:val;
+  ['si','no','na'].forEach(v=>{
+    const el=document.getElementById(`d4_${id}_${idx}_${v}`);
+    if(el) el.className='dim4-opt'+(dim4State[id][idx]===v?' d-'+v:'');
+  });
+  actualizarScore(); actualizarProgreso();
+}
+
+// ── Drag & drop for dim4 ──
+function dragStart(e,itemId,idx){
+  dragSrcItemId=itemId; dragSrcIdx=idx;
+  e.dataTransfer.effectAllowed='move';
+}
+function dragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function dragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function dragDrop(e,itemId,tgtIdx){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(dragSrcIdx===tgtIdx||dragSrcItemId!==itemId) return;
+  const item=ITEMS.find(i=>i.id===itemId);
+  // swap opciones
+  [item.opciones[dragSrcIdx],item.opciones[tgtIdx]]=[item.opciones[tgtIdx],item.opciones[dragSrcIdx]];
+  // swap state
+  if(dim4State[itemId]){
+    const tmp=dim4State[itemId][dragSrcIdx];
+    dim4State[itemId][dragSrcIdx]=dim4State[itemId][tgtIdx];
+    dim4State[itemId][tgtIdx]=tmp;
+  }
+  // re-render that item's table body
+  const tbody=document.getElementById(`dim4body_${itemId}`);
+  tbody.innerHTML=item.opciones.map((op,idx)=>`
+    <tr id="dim4row_${itemId}_${idx}">
+      <td style="font-weight:500">${op}</td>
+      <td class="col-op"><span class="dim4-opt${dim4State[itemId]&&dim4State[itemId][idx]==='si'?' d-si':''}" id="d4_${itemId}_${idx}_si" onclick="handleDim4(${itemId},${idx},'si')">Sí</span></td>
+      <td class="col-op"><span class="dim4-opt${dim4State[itemId]&&dim4State[itemId][idx]==='no'?' d-no':''}" id="d4_${itemId}_${idx}_no" onclick="handleDim4(${itemId},${idx},'no')">No</span></td>
+      <td class="col-op"><span class="dim4-opt${dim4State[itemId]&&dim4State[itemId][idx]==='na'?' d-na':''}" id="d4_${itemId}_${idx}_na" onclick="handleDim4(${itemId},${idx},'na')">N/A</span></td>
+    </tr>`).join('');
+  actualizarScore();
+}
+
+// ── dim4_simple state & handler (Sí/No, 0,25 cada una) ──
+const dim4sState={}; // {itemId: {idx: 'si'|'no'|null}}
+function handleDim4s(id,idx,val){
+  if(!dim4sState[id]) dim4sState[id]={};
+  dim4sState[id][idx]=dim4sState[id][idx]===val?null:val;
+  ['si','no'].forEach(v=>{
+    const el=document.getElementById(`d4s_${id}_${idx}_${v}`);
+    if(el) el.className='dim4-opt'+(dim4sState[id][idx]===v?' d-'+v:'');
+  });
+  actualizarScore(); actualizarProgreso();
+}
+
+// ── multi5 handler ──
+function handleM5(id,idx,val){
+  if(!multi5State[id]) multi5State[id]={};
+  multi5State[id][idx]=multi5State[id][idx]===val?null:val;
+  ['si','no','na'].forEach(v=>{
+    const el=document.getElementById(`m5_${id}_${idx}_${v}`);
+    if(el) el.className='m5-opt'+(multi5State[id][idx]===v?' m-'+v:'');
+  });
+  actualizarScore(); actualizarProgreso();
+}
+
+// ===================== CÁLCULO PUNTAJE =====================
+// Para multi_dim:
+// - NA por sub-ítem reduce el denominador en 0.25
+// - Mínimo 2 dimensiones disponibles para ser evaluado
+// - Si se marcan ≥2 checkeadas → pts = suma, den = suma de den disponibles
+// - Si se marcan 1 → idem pero con den ajustado
+// - 0 marcadas y alguna NA → den reducido, pts=null (aún no respondido)
+function getItemScore(item){
+  if(item.tipo==='radio'){
+    const val=respuestas[item.id];
+    if(val===undefined) return{pts:null,den:item.maxPts,na:false};
+    const pts=item.puntaje[val];
+    if(pts===null) return{pts:null,den:0,na:true};
+    return{pts,den:item.maxPts,na:false};
+  }
+  if(item.tipo==='multi_dim'){
+    const st=multiState[item.id]||{};
+    const na=multiNaState[item.id]||{};
+    const total=item.opciones.length;
+    let checkedCount=0, naCount=0;
+    item.opciones.forEach((op,idx)=>{
+      if(na[idx]){naCount++;return;}
+      if(st[idx]) checkedCount++;
+    });
+    const dispCount=total-naCount; // dimensiones disponibles (no marcadas NA)
+    // Sin interacción → pendiente
+    if(checkedCount===0&&naCount===0) return{pts:null,den:item.maxPts,na:false};
+    // Menos de 2 disponibles → no aplica el ítem
+    if(dispCount<2) return{pts:null,den:0,na:true};
+    // Mínimo 2 marcadas para obtener cualquier puntaje
+    if(checkedCount<2) return{pts:0,den:item.maxPts,na:false};
+    // Puntaje normalizado sobre disponibles:
+    // si marca todas las disponibles → 1 pt siempre
+    // por cada disponible no marcada → descuenta 0,25
+    const noCumplidas=dispCount-checkedCount;
+    const ptsObt=Math.max(0, item.maxPts - noCumplidas*0.25);
+    return{pts:ptsObt,den:item.maxPts,na:false};
+  }
+  if(item.tipo==='dim4'){
+    const st=dim4State[item.id]||{};
+    const total=item.opciones.length; // 4
+    let described=0, noDesc=0, naCount=0, interacted=0;
+    item.opciones.forEach((_,idx)=>{
+      const v=st[idx];
+      if(v) interacted++;
+      if(v==='si') described++;
+      else if(v==='no') noDesc++;
+      else if(v==='na') naCount++;
+    });
+    if(interacted===0) return{pts:null,den:item.maxPts,na:false};
+    // Regla: mínimo 2 descritas para puntaje, cada no descrita descuenta 0,25
+    if(described<2) return{pts:0,den:item.maxPts,na:false};
+    const pts=Math.max(0, item.maxPts - noDesc*0.25);
+    return{pts,den:item.maxPts,na:false};
+  }
+  if(item.tipo==='multi5'){
+    const st=multi5State[item.id]||{};
+    let ptsObt=0, interacted=0;
+    item.opciones.forEach((op,idx)=>{
+      const v=st[idx];
+      if(v) interacted++;
+      if(v==='si') ptsObt+=op.pts;
+      else if(v==='na'&&op.naOk) ptsObt+=op.pts; // NA suma punto
+    });
+    if(interacted===0) return{pts:null,den:item.maxPts,na:false};
+    return{pts:ptsObt,den:item.maxPts,na:false};
+  }
+  if(item.tipo==='dim4_simple'){
+    const st=dim4sState[item.id]||{};
+    const interacted=Object.values(st).filter(v=>v!==null&&v!==undefined).length;
+    if(interacted===0) return{pts:null,den:item.maxPts,na:false};
+    // contar cuántas marcadas como 'si'
+    let siCount=0, ptsObt=0;
+    item.opciones.forEach((_,idx)=>{ if(st[idx]==='si'){siCount++;ptsObt+=0.25;} });
+    // mínimo 2 'si' para sumar cualquier puntaje
+    if(siCount<2) return{pts:0,den:item.maxPts,na:false};
+    return{pts:ptsObt,den:item.maxPts,na:false};
+  }
+  return{pts:null,den:item.maxPts,na:false};
+}
+
+function calcScores(){
+  let totalObt=0,totalDen=0,obligObt=0,obligDen=0;
+  const sec={ingreso:{obt:0,den:0},plan:{obt:0,den:0},seguimiento:{obt:0,den:0},control:{obt:0,den:0}};
+  ITEMS.forEach(item=>{
+    const sc=getItemScore(item);
+    if(sc.na) return;
+    if(sc.pts!==null){
+      totalObt+=sc.pts; sec[item.seccion].obt+=sc.pts;
+      if(item.obligatorio) obligObt+=sc.pts;
+    }
+    totalDen+=sc.den; sec[item.seccion].den+=sc.den;
+    if(item.obligatorio) obligDen+=sc.den;
+  });
+  // combinar ingreso+plan para la sección II+III en live scores
+  const ingresoComb={obt:sec.ingreso.obt+sec.plan.obt,den:sec.ingreso.den+sec.plan.den};
+  return{totalObt,totalDen,obligObt,obligDen,sec,ingresoComb};
+}
+
+function pct(o,d){if(!d)return 0;return Math.round((o/d)*100);}
+
+function actualizarScore(){
+  const sc=calcScores();
+  const global=pct(sc.totalObt,sc.totalDen);
+  const oblig=pct(sc.obligObt,sc.obligDen);
+  const setC=(id,val,sub,p)=>{
+    const c=document.getElementById(id);
+    document.getElementById(id+'Val').textContent=val;
+    const se=document.getElementById(id+'Sub');
+    if(se) se.textContent=sub;
+    c.className='score-card'+(p>=80?' ok':p>=60?' warn':' bad');
+  };
+  setC('scOblig',oblig+'%',`${sc.obligObt.toFixed(2)} de ${sc.obligDen.toFixed(2)} pts`,oblig);
+  setC('scGlobal',global+'%',`${sc.totalObt.toFixed(2)} de ${sc.totalDen.toFixed(2)} pts`,global);
+  const pi=sc.sec.ingreso; const pip=pct(pi.obt,pi.den);
+  setC('scIngreso',pip+'%',`${pi.obt.toFixed(2)}/${pi.den.toFixed(2)} pts`,pip);
+  const pp=sc.sec.plan; const ppp=pct(pp.obt,pp.den);
+  setC('scPlan',ppp+'%',`${pp.obt.toFixed(2)}/${pp.den.toFixed(2)} pts`,ppp);
+  ['seguimiento','control'].forEach(s=>{
+    const x=sc.sec[s]; const p=pct(x.obt,x.den);
+    document.getElementById(`sc${s.charAt(0).toUpperCase()+s.slice(1)}Val`).textContent=p+'%';
+    document.getElementById(`sc${s.charAt(0).toUpperCase()+s.slice(1)}Sub`).textContent=`${x.obt.toFixed(2)}/${x.den.toFixed(2)} pts`;
+    document.getElementById(`sc${s.charAt(0).toUpperCase()+s.slice(1)}`).className='score-card'+(p>=80?' ok':p>=60?' warn':' bad');
+  });
+}
+
+function actualizarProgreso(){
+  const tot=ITEMS.length; let resp=0;
+  ITEMS.forEach(item=>{
+    if(item.tipo==='radio'&&respuestas[item.id]!==undefined) resp++;
+    if(item.tipo==='multi_dim'){
+      const st=multiState[item.id]||{};
+      const na=multiNaState[item.id]||{};
+      if(Object.values(st).some(Boolean)||Object.values(na).some(Boolean)) resp++;
+    }
+    if(item.tipo==='dim4'){const st=dim4State[item.id]||{};if(Object.values(st).some(Boolean)) resp++;}
+    if(item.tipo==='dim4_simple'){const st=dim4sState[item.id]||{};if(Object.values(st).some(v=>v!==null&&v!==undefined)) resp++;}
+    if(item.tipo==='multi5'){const st=multi5State[item.id]||{};if(Object.values(st).some(Boolean)) resp++;}
+  });
+  const p=Math.round((resp/tot)*100);
+  document.getElementById('progressFill').style.width=p+'%';
+  document.getElementById('progressPct').textContent=p+'%';
+}
+
+// ===================== INFORME =====================
+function generarInforme(){
+  const sc=calcScores();
+  const global=pct(sc.totalObt,sc.totalDen);
+  const oblig=pct(sc.obligObt,sc.obligDen);
+  const cumple=global>=80&&oblig>=80;
+
+  const fecha=document.getElementById('fechaAplicacion').value;
+  const aplicador=document.getElementById('nombreAplicador').value||'—';
+  const provincia=document.getElementById('provincia').value||'—';
+  const comuna=document.getElementById('comuna').value||'—';
+  const centro=document.getElementById('centroSalud').value||'—';
+  const rut=document.getElementById('rutFicha').value||'—';
+  const clasif=document.getElementById('clasificacion').value||'—';
+  const tipoEval=document.getElementById('tipoEval').value||'—';
+  const fechaFmt=fecha?new Date(fecha+'T00:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'}):'—';
+
+  const detalleItems=ITEMS.slice().sort((a,b)=>{
+    // orden global: ingreso 1-9, plan 10-16, seg 17-22, ctrl por orden
+    const secOrd={ingreso:0,plan:1,seguimiento:2,control:3};
+    if(secOrd[a.seccion]!==secOrd[b.seccion]) return secOrd[a.seccion]-secOrd[b.seccion];
+    if(a.seccion==='control') return a.orden-b.orden;
+    return a.id-b.id;
+  }).map(item=>{
+    const sc2=getItemScore(item);
+    let resp='—';
+    if(item.tipo==='radio') resp=respuestas[item.id]||'Sin respuesta';
+    if(item.tipo==='multi_dim'){
+      const st=multiState[item.id]||{};
+      const na=multiNaState[item.id]||{};
+      const sel=item.opciones.filter((_,i)=>st[i]).map(o=>o.label);
+      const naL=item.opciones.filter((_,i)=>na[i]).map(o=>o.label+' (N/A)');
+      const all=[...sel,...naL];
+      resp=all.length?all.join(', '):'Sin selección';
+    }
+    return{item,resp,sc:sc2};
+  });
+
+  const fortalezas=detalleItems.filter(d=>!d.sc.na&&d.sc.pts!==null&&d.sc.pts>=d.sc.den&&d.sc.den>0);
+  const debilidades=detalleItems.filter(d=>!d.sc.na&&d.sc.pts!==null&&d.sc.pts<d.sc.den);
+  const sinResp=detalleItems.filter(d=>d.sc.pts===null&&!d.sc.na);
+
+  const secPcts={
+    ingreso:pct(sc.sec.ingreso.obt,sc.sec.ingreso.den),
+    plan:pct(sc.sec.plan.obt,sc.sec.plan.den),
+    seguimiento:pct(sc.sec.seguimiento.obt,sc.sec.seguimiento.den),
+    control:pct(sc.sec.control.obt,sc.sec.control.den)
+  };
+
+  const analisisTxt=generarAnalisis({global,oblig,secPcts,cumple,fortalezas,debilidades,sinResp,clasif,centro,rut});
+
+  document.getElementById('informeBody').innerHTML=`
+    <div class="inf-meta-grid">
+      <div class="inf-meta-item"><div class="k">Fecha auditoría</div><div class="v">${fechaFmt}</div></div>
+      <div class="inf-meta-item"><div class="k">Tipo evaluación</div><div class="v">${tipoEval}</div></div>
+      <div class="inf-meta-item"><div class="k">Auditado por</div><div class="v">${aplicador}</div></div>
+      <div class="inf-meta-item"><div class="k">Provincia</div><div class="v">${provincia}</div></div>
+      <div class="inf-meta-item"><div class="k">Comuna</div><div class="v">${comuna}</div></div>
+      <div class="inf-meta-item"><div class="k">Centro de salud</div><div class="v">${centro}</div></div>
+      <div class="inf-meta-item"><div class="k">RUT ficha auditada</div><div class="v">${rut}</div></div>
+      <div class="inf-meta-item"><div class="k">Clasificación de riesgo</div><div class="v">${clasif}</div></div>
+    </div>
+    <div class="cumplimiento-banner ${cumple?'cumple':'no-cumple'}">
+      <div class="cb-icon">${cumple?'✅':'❌'}</div>
+      <div class="cb-text">
+        <h3>${cumple?'Cumple con los estándares ECICEP':'No cumple con los estándares ECICEP'}</h3>
+        <p>Se requiere ≥80% en ítems obligatorios y ≥80% en puntaje global.</p>
+      </div>
+    </div>
+    <div class="puntaje-grid">
+      <div class="puntaje-card ${oblig>=80?'ok':oblig>=60?'warn':'bad'}">
+        <div class="pc-label">Ítems obligatorios</div>
+        <div class="pc-pct">${oblig}%</div>
+        <div class="pc-pts">${sc.obligObt.toFixed(2)} / ${sc.obligDen.toFixed(2)} pts</div>
+        <div class="threshold ${oblig>=80?'pass':'fail'}">${oblig>=80?'✓ Cumple':'✗ No cumple'} meta 80%</div>
+      </div>
+      <div class="puntaje-card ${global>=80?'ok':global>=60?'warn':'bad'}">
+        <div class="pc-label">Puntaje global</div>
+        <div class="pc-pct">${global}%</div>
+        <div class="pc-pts">${sc.totalObt.toFixed(2)} / ${sc.totalDen.toFixed(2)} pts</div>
+        <div class="threshold ${global>=80?'pass':'fail'}">${global>=80?'✓ Cumple':'✗ No cumple'} meta 80%</div>
+      </div>
+      <div class="puntaje-card">
+        <div class="pc-label">Ítems sin respuesta</div>
+        <div class="pc-pct" style="color:var(--gris);">${sinResp.length}</div>
+        <div class="pc-pts">de ${ITEMS.length} ítems totales</div>
+        <div class="threshold" style="background:var(--gris-light);color:var(--gris);">Sin respuesta</div>
+      </div>
+    </div>
+    <div class="detalle-section">
+      <h4>Puntaje por sección</h4>
+      <div class="dim-bar-wrap">
+        ${(()=>{
+          const secs=[
+            {key:'ingreso', lbl:'II. Ingreso Integral', obt:sc.sec.ingreso.obt, den:sc.sec.ingreso.den},
+            {key:'plan',    lbl:'III. Plan de Cuidados Integral y Consensuado', obt:sc.sec.plan.obt, den:sc.sec.plan.den},
+            {key:'seguimiento', lbl:'IV. Seguimiento Integral', obt:sc.sec.seguimiento.obt, den:sc.sec.seguimiento.den},
+            {key:'control', lbl:'V. Control Integral', obt:sc.sec.control.obt, den:sc.sec.control.den}
+          ];
+          return secs.map(s=>{
+            const p=pct(s.obt,s.den); const cls=p>=80?'ok':p>=60?'warn':'bad';
+            return `<div class="dim-row">
+              <span class="dim-label" style="min-width:280px;font-size:12px;">${s.lbl}</span>
+              <div class="dim-track"><div class="dim-fill ${cls}" style="width:${p}%"></div></div>
+              <span class="dim-pct">${p}%</span>
+              <span style="font-size:11px;color:var(--muted);min-width:70px;text-align:right;">${s.obt.toFixed(2)}/${s.den.toFixed(2)} pt</span>
+            </div>`;
+          }).join('');
+        })()}
+      </div>
+    </div>
+    <div class="analisis-box"><h4>📊 Análisis descriptivo</h4>${analisisTxt}</div>
+
+    <div class="detalle-section">
+      <h4>Detalle — II. Ingreso Integral (Ítems 1–9)</h4>
+      ${tablaDetalle(detalleItems.filter(d=>d.item.seccion==='ingreso'))}
+    </div>
+    <div class="detalle-section">
+      <h4>Detalle — III. Plan de Cuidados Integral y Consensuado (Ítems 10–16)</h4>
+      ${tablaDetalle(detalleItems.filter(d=>d.item.seccion==='plan'))}
+    </div>
+    <div class="detalle-section">
+      <h4>Detalle — IV. Seguimiento Integral (Ítems 17–22)</h4>
+      ${tablaDetalle(detalleItems.filter(d=>d.item.seccion==='seguimiento'))}
+    </div>
+    <div class="detalle-section">
+      <h4>Detalle — V. Control Integral (Ítems 23–31)</h4>
+      ${tablaDetalle(detalleItems.filter(d=>d.item.seccion==='control').sort((a,b)=>a.item.orden-b.item.orden))}
+    </div>
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:center;">
+      <div class="firma-box" style="width:320px;">
+        <div class="firma-line"></div>
+        <div class="firma-label">Firma del Auditor/a</div>
+        <div class="firma-name">${aplicador||'_________________________'}</div>
+      </div>
+    </div>
+    ${obsInforme(detalleItems)}
+    <div style="background:var(--gris-light);border-radius:7px;padding:12px 16px;font-size:12px;color:var(--muted);margin-top:16px;">
+      Informe generado el ${new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'})} a las ${new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})} · Pauta Auditoría Ficha Clínica ECICEP · Servicio de Salud Coquimbo
+    </div>
+  `;
+  document.getElementById('informe').style.display='block';
+  document.getElementById('inf-subtitle').textContent=`${centro} · ${rut} · ${fechaFmt}`;
+  document.getElementById('btnImprimir').style.display='flex';
+  document.getElementById('btnSheets').style.display='flex';
+  document.getElementById('informe').scrollIntoView({behavior:'smooth',block:'start'});
+  // Radar chart
+  setTimeout(()=>renderRadar(sc,secPcts),200);
+}
+
+function renderRadar(sc,secPcts){
+  const canvas=document.getElementById('radarChart');
+  if(!canvas) return;
+  if(canvas._chartInstance) canvas._chartInstance.destroy();
+  const ingP=pct(sc.sec.ingreso.obt,sc.sec.ingreso.den);
+  const planP=pct(sc.sec.plan.obt,sc.sec.plan.den);
+  const ctx=canvas.getContext('2d');
+  canvas._chartInstance=new Chart(ctx,{
+    type:'radar',
+    data:{
+      labels:['II. Ingreso','III. Plan Cuidados','IV. Seguimiento','V. Control'],
+      datasets:[{
+        label:'% obtenido',
+        data:[ingP,planP,secPcts.seguimiento,secPcts.control],
+        backgroundColor:'rgba(37,99,168,0.15)',
+        borderColor:'rgba(37,99,168,0.8)',
+        pointBackgroundColor:'rgba(37,99,168,1)',
+        pointRadius:5,
+        borderWidth:2
+      },{
+        label:'Meta 80%',
+        data:[80,80,80,80],
+        backgroundColor:'rgba(163,45,45,0.05)',
+        borderColor:'rgba(163,45,45,0.4)',
+        pointRadius:0,
+        borderWidth:1.5,
+        borderDash:[5,5]
+      }]
+    },
+    options:{
+      responsive:true,
+      scales:{r:{min:0,max:100,ticks:{stepSize:20,font:{size:10}},pointLabels:{font:{size:11}}}},
+      plugins:{legend:{labels:{font:{size:11}}}}
+    }
+  });
+}
+
+function tablaDetalle(items){
+  return `<table class="detalle-table">
+    <thead><tr>
+      <th style="width:36px">N°</th><th>Ítem</th>
+      <th style="width:76px">Tipo</th><th style="width:160px">Respuesta</th><th style="width:90px">Puntaje</th>
+    </tr></thead>
+    <tbody>${items.map(d=>{
+      const sc2=d.sc;
+      let ptsL='—',pCls='';
+      if(sc2.na){ptsL='No aplica';pCls='pill-na';}
+      else if(sc2.pts===null){ptsL='Sin resp.';pCls='pill-na';}
+      else{ptsL=`${sc2.pts.toFixed(2)}/${sc2.den.toFixed(2)}`;pCls=sc2.pts>=sc2.den?'pill-si':sc2.pts>0?'pill-p':'pill-no';}
+      let rp=d.resp;
+      if(d.resp==='Sí'||d.resp.startsWith('Sí,')) rp=`<span class="pill pill-si">${d.resp}</span>`;
+      else if(d.resp==='No') rp=`<span class="pill pill-no">No</span>`;
+      else if(d.resp==='No aplica') rp=`<span class="pill pill-na">No aplica</span>`;
+      else if(d.resp!=='—'&&d.resp!=='Sin respuesta'&&d.resp!=='Sin selección') rp=`<span class="pill pill-p" style="font-size:11px;white-space:normal;">${d.resp}</span>`;
+      return `<tr>
+        <td><strong>${d.item.num}</strong></td>
+        <td style="font-size:12.5px;line-height:1.4;">${d.item.texto}</td>
+        <td><span class="pill ${d.item.obligatorio?'pill-oblig':'pill-opc'}">${d.item.obligatorio?'Oblig.':'Opc.'}</span></td>
+        <td style="font-size:12px;">${rp}</td>
+        <td><span class="pill ${pCls}" style="font-size:11px;">${ptsL}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function generarRecomendaciones(detalleItems){
+  const RECS={
+    1:{txt:'Verificar que el ingreso se agende bajo el tipo de prestación correcto "Ingreso integral según clasificación de riesgo". Coordinar con la unidad de estadística o SOME para ajustar la agenda.'},
+    2:{txt:'Incorporar en el registro de ingreso la percepción de salud referida por la persona, idealmente con una escala validada (ej.: Likert de 1 a 5).'},
+    3:{txt:'Completar la anamnesis con todas las dimensiones del modelo biopsicosocial (biológica, psicológica/espiritual, social-comunitaria y familiar). Utilizar el formato ECICEP local aprobado.'},
+    4:{txt:'Asegurar que el diagnóstico o valoración integral sea coherente y se fundamente explícitamente en los hallazgos de la anamnesis registrada.'},
+    5:{txt:'Registrar el estado de vigencia de tamizajes y exámenes preventivos (EMPA, EMPAM, PAP, mamografía, PHQ-9 según corresponda) en cada ingreso.'},
+    6:{txt:'Utilizar el catálogo AVIS y el marco conceptual ECICEP para codificar y registrar los diagnósticos del ingreso.'},
+    7:{txt:'Registrar las actividades y formularios correspondientes a cada diagnóstico (ej.: encuesta ERC, PedsQL). Verificar protocolos locales vigentes.'},
+    8:{txt:'Incluir receta unificada en el ingreso. Verificar disponibilidad de recetario y coordinación con médico/a tratante.'},
+    9:{txt:'Registrar el plan de cuidados integral y consensuado según el formato local aprobado por el Servicio de Salud Coquimbo.'},
+    10:{txt:'Incluir en el plan de cuidados los problemas priorizados en conjunto con la persona y/o su familia, reflejando el proceso de toma de decisiones compartida.'},
+    11:{txt:'Registrar los objetivos o metas consensuados con la persona y/o familia, con lenguaje claro y comprensible para el usuario.'},
+    12:{txt:'Documentar las opciones terapéuticas ofrecidas y discutidas con la persona y/o familia, evidenciando el proceso de decisión informada.'},
+    13:{txt:'Asegurar que las actividades planificadas sean coherentes con los objetivos/metas definidos y queden explicitadas en el plan de cuidados.'},
+    14:{txt:'Definir y registrar plazos concretos y responsables específicos para cada acuerdo del plan de cuidados.'},
+    15:{txt:'Incorporar la recomendación de activos comunitarios pertinentes (talleres, grupos de apoyo, organizaciones locales) cuando corresponda clínicamente.'},
+    16:{txt:'Estipular explícitamente la realización de seguimiento integral, indicando modalidad, frecuencia y responsable.'},
+    17:{txt:'Verificar que el seguimiento quede agendado bajo el tipo de prestación correcto "Seguimiento a distancia con riesgo alto (G3)".'},
+    18:{txt:'Evaluar y registrar en cada seguimiento: sintomatología/descompensación, adherencia al tratamiento, consultas a urgencia u hospitalizaciones, y recomendación de activos comunitarios según corresponda.'},
+    19:{txt:'Registrar explícitamente el seguimiento del plan de cuidados, incluyendo refuerzo de actividades y compromisos pactados con la persona.'},
+    20:{txt:'Ante la detección de nueva problemática durante el seguimiento, documentar la revisión con el gestor de caso o equipo tratante.'},
+    21:{txt:'Registrar el seguimiento realizado dentro del plan de cuidados vigente, actualizando el estado de los compromisos.'},
+    22:{txt:'Registrar la próxima intervención programada (control, seguimiento u otro), indicando fecha o plazo aproximado.'},
+    23:{txt:'Verificar que el control quede agendado como "Control integral con riesgo alto (G1-G2-G3)" en el sistema de agenda.'},
+    24:{txt:'Incluir en el control el registro de todas las dimensiones del modelo biopsicosocial (biológica, psicológica/espiritual, social-comunitaria y familiar).'},
+    25:{txt:'Evaluar y registrar en el control: sintomatología, adherencia al tratamiento, consultas a urgencia u hospitalizaciones, y activos comunitarios cuando corresponda.'},
+    26:{txt:'Registrar el control de parámetros clínicos relevantes (presión arterial, glicemia, peso, etc.) según el perfil de la persona.'},
+    27:{txt:'Registrar la percepción de salud referida por la persona en cada control integral.'},
+    28:{txt:'Registrar la revisión de exámenes, procedimientos y controles solicitados o realizados previamente, con análisis de resultados.'},
+    30:{txt:'Completar los formularios que correspondan según diagnóstico (ej.: encuesta ERC, PedsQL) y registrarlos en la ficha.'},
+    31:{txt:'Utilizar el catálogo AVIS y el marco conceptual ECICEP para registrar los diagnósticos actualizados en el control.'},
+    29:{txt:'Registrar la actualización del plan de cuidados: indicar si se realizan cambios o si se mantiene el plan actual, justificando la decisión.'}
+  };
+  const criticas=detalleItems.filter(d=>!d.sc.na&&d.sc.pts!==null&&d.sc.pts<d.sc.den&&d.item.obligatorio);
+  const opcionales=detalleItems.filter(d=>!d.sc.na&&d.sc.pts!==null&&d.sc.pts<d.sc.den&&!d.item.obligatorio);
+  if(criticas.length===0&&opcionales.length===0) return '<p style="font-size:13px;color:var(--verde);font-weight:500;">✓ No se identificaron brechas. La ficha cumple con todos los ítems evaluados.</p>';
+  let html='';
+  if(criticas.length>0){
+    html+=`<p style="font-size:12px;font-weight:600;color:var(--rojo);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Críticas (ítems obligatorios)</p>`;
+    html+=`<ul class="rec-list">`;
+    criticas.forEach(d=>{
+      const rec=RECS[d.item.id];
+      html+=`<li class="critica"><strong>Ítem ${d.item.num}:</strong> ${rec?rec.txt:'Revisar y corregir el registro de este ítem.'}</li>`;
+    });
+    html+=`</ul>`;
+  }
+  if(opcionales.length>0){
+    html+=`<p style="font-size:12px;font-weight:600;color:var(--azul);text-transform:uppercase;letter-spacing:.07em;margin:12px 0 6px;">Mejoras recomendadas (ítems no obligatorios)</p>`;
+    html+=`<ul class="rec-list">`;
+    opcionales.forEach(d=>{
+      const rec=RECS[d.item.id];
+      html+=`<li><strong>Ítem ${d.item.num}:</strong> ${rec?rec.txt:'Revisar y mejorar el registro de este ítem.'}</li>`;
+    });
+    html+=`</ul>`;
+  }
+  return html;
+}
+
+function obsInforme(detalleItems){
+  const conObs=detalleItems.filter(d=>{
+    const el=document.getElementById(`obs_${d.item.id}`);
+    return el&&el.value.trim();
+  });
+  if(conObs.length===0) return '';
+  return `<div class="detalle-section">
+    <h4>Observaciones del auditor por ítem</h4>
+    <table class="detalle-table">
+      <thead><tr><th style="width:50px">Ítem</th><th>Pregunta</th><th>Observación</th></tr></thead>
+      <tbody>${conObs.map(d=>{
+        const el=document.getElementById(`obs_${d.item.id}`);
+        return `<tr>
+          <td><strong>${d.item.num}</strong></td>
+          <td style="font-size:12px;">${d.item.texto.substring(0,60)}${d.item.texto.length>60?'...':''}</td>
+          <td style="font-size:12px;color:var(--gris);white-space:pre-wrap;">${el.value.trim()}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function generarAnalisis({global,oblig,secPcts,cumple,fortalezas,debilidades,sinResp,clasif,centro,rut}){
+  const nivel=global>=90?'alto':global>=80?'satisfactorio':global>=60?'moderado':'bajo';
+  const sL=p=>p>=80?'adecuado':p>=60?'en desarrollo':'deficiente';
+  let t='';
+  t+=`<p>La ficha clínica del RUT <strong>${rut}</strong> del establecimiento <strong>${centro}</strong> obtuvo un <strong>puntaje global de ${global}%</strong> y un ${oblig}% en ítems obligatorios, representando un nivel de cumplimiento <strong>${nivel}</strong> de los estándares ECICEP.</p>`;
+  if(!cumple){
+    const r=[];
+    if(oblig<80) r.push(`los ítems obligatorios (${oblig}%) no alcanzan el mínimo del 80%`);
+    if(global<80) r.push(`el puntaje global (${global}%) está bajo el umbral de cumplimiento`);
+    t+=`<p>La ficha <strong>no da cumplimiento</strong> a los estándares dado que ${r.join(' y ')}. Se requiere atención prioritaria del equipo clínico y jefatura de sector.</p>`;
+  } else {
+    t+=`<p>La ficha <strong>da cumplimiento</strong> a los estándares ECICEP, superando el umbral del 80% en ambas dimensiones evaluadas.</p>`;
+  }
+  t+=`<p>Por secciones: <strong>Ingreso + Plan de Cuidados</strong> presenta desempeño ${sL(secPcts.ingreso)} (${secPcts.ingreso}%); <strong>Seguimiento Integral</strong> es ${sL(secPcts.seguimiento)} (${secPcts.seguimiento}%); y <strong>Control Integral</strong> es ${sL(secPcts.control)} (${secPcts.control}%).</p>`;
+  if(fortalezas.length>0) t+=`<p>Se identificaron <strong>${fortalezas.length} ítem${fortalezas.length>1?'s':''} con cumplimiento completo</strong> (${fortalezas.slice(0,4).map(f=>`ítem ${f.item.num}`).join(', ')}${fortalezas.length>4?' y otros':''}), que constituyen buenas prácticas a mantener y reforzar.</p>`;
+  const oblDeb=debilidades.filter(d=>d.item.obligatorio);
+  if(oblDeb.length>0) t+=`<p>Se detectaron <strong>${oblDeb.length} ítem${oblDeb.length>1?'s obligatorios':'obligatorio'} sin cumplimiento</strong> (${oblDeb.map(d=>`ítem ${d.item.num}`).join(', ')}), los que deben ser priorizados como acciones de mejora inmediata.</p>`;
+  if(sinResp.length>0) t+=`<p><strong>${sinResp.length} ítem${sinResp.length>1?'s quedaron':'quedó'} sin respuesta</strong>, lo que puede afectar la representatividad del puntaje. Se recomienda completar íntegramente la evaluación.</p>`;
+  const cTxt={G1:'bajo riesgo',G2:'riesgo moderado',G3:'alto riesgo'}[clasif]||'';
+  if(cTxt) t+=`<p>La persona auditada tiene clasificación <strong>${clasif} (${cTxt})</strong>; los estándares de registro y seguimiento deben ajustarse a los requerimientos de dicho grupo según el marco conceptual ECICEP.</p>`;
+  return t;
+}
+</script>
+</body>
+</html>
